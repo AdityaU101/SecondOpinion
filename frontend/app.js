@@ -169,12 +169,22 @@ async function submitText(text) {
 // ── JOB POLLING ───────────────────────────────────────────
 function pollJobStatus(jobId) {
   let attempts = 0;
-  const MAX_ATTEMPTS = 120; // 2 minutes at 1s intervals
+  let finished = false;               // ensures the result renders exactly once
+  const MAX_ATTEMPTS = 120;           // 2 minutes at 1s intervals
+
+  if (state.pollInterval) clearInterval(state.pollInterval);  // no leftover loop
+
+  const stop = () => {
+    finished = true;
+    clearInterval(state.pollInterval);
+    state.pollInterval = null;
+  };
 
   state.pollInterval = setInterval(async () => {
+    if (finished) return;             // a previous tick already handled completion
     attempts++;
     if (attempts > MAX_ATTEMPTS) {
-      clearInterval(state.pollInterval);
+      stop();
       showError('Analysis is taking too long. Please try again.');
       return;
     }
@@ -184,13 +194,15 @@ function pollJobStatus(jobId) {
       if (!res.ok) throw new Error('Status check failed');
 
       const job = await res.json();
+      if (finished) return;           // completed while THIS tick was awaiting — bail out
+
       syncProcessingUI(job);
 
       if (job.status === 'completed' && job.result) {
-        clearInterval(state.pollInterval);
+        stop();
         showResults(job.result);
       } else if (job.status === 'failed') {
-        clearInterval(state.pollInterval);
+        stop();
         showError(job.error || 'Analysis failed. Please try again.');
       }
     } catch (err) {
