@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
 
@@ -16,8 +16,14 @@
     <div class="header-inner">
       <div class="logo">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-          <rect width="28" height="28" rx="8" fill="#0D9488"/>
-          <path d="M8 14h3l2-5 3 10 2-5h2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28">
+              <stop offset="0" stop-color="#12907C"/>
+              <stop offset="1" stop-color="#0A5F52"/>
+            </linearGradient>
+          </defs>
+          <rect width="28" height="28" rx="8" fill="url(#logo-grad)"/>
+          <path d="M8 14h3l2-5 3 10 2-5h2" stroke="#EFFCF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="logo-text">ClearChart</span>
       </div>
@@ -188,8 +194,14 @@
       <div class="processing-container">
         <div class="pulse-ring" aria-hidden="true">
           <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="8" fill="#0D9488"/>
-            <path d="M8 14h3l2-5 3 10 2-5h2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="logo-grad-2" x1="0" y1="0" x2="28" y2="28">
+                <stop offset="0" stop-color="#12907C"/>
+                <stop offset="1" stop-color="#0A5F52"/>
+              </linearGradient>
+            </defs>
+            <rect width="28" height="28" rx="8" fill="url(#logo-grad-2)"/>
+            <path d="M8 14h3l2-5 3 10 2-5h2" stroke="#EFFCF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <h2 class="processing-title">Analyzing your records…</h2>

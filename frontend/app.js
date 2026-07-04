@@ -590,11 +590,13 @@ function showToast(message, type = 'info') {
   toast.id = 'toast';
   toast.style.cssText = `
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: ${type === 'error' ? '#1E293B' : '#0D9488'};
-    color: white; padding: 12px 20px; border-radius: 10px;
+    background: ${type === 'error' ? '#3B1213' : '#0A2E2B'};
+    border: 1px solid ${type === 'error' ? 'rgba(220,38,38,0.5)' : 'rgba(45,212,191,0.4)'};
+    color: ${type === 'error' ? '#FECACA' : '#D5F0E9'};
+    padding: 13px 22px; border-radius: 12px;
     font-size: 14px; font-weight: 500; z-index: 9999;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    animation: slideUp 0.2s ease; max-width: 400px; text-align: center;
+    box-shadow: 0 12px 32px -8px rgba(10,46,43,0.5);
+    animation: slideUp 0.25s cubic-bezier(.22,.9,.24,1); max-width: 400px; text-align: center;
   `;
   toast.textContent = message;
 
