@@ -1,0 +1,72 @@
+# ── ClearChart — full stack ───────────────────────────────────────────────
+# 4 services that map directly to the system-design checklist:
+#   db      → PostgreSQL  (S2: structured RDBMS, shared state for stateless tier)
+#   redis   → message queue broker (S6: producer/consumer decoupling)
+#   api     → FastAPI (S1/S5: web tier, JSON API) — the PRODUCER
+#   worker  → arq consumer (S6) — runs the RAG + Claude pipeline
+#
+#   Quick start:
+#     1) copy backend/.env.example to ./.env and set ANTHROPIC_API_KEY
+#     2) docker compose up --build
+#     3) open http://localhost:8000
+#
+# Without an API key the app still runs and returns deterministic rule-only
+# reports — so the stack comes up end-to-end even before you add a key.
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql+asyncpg://clearchart:clearchart@db:5432/clearchart
+  REDIS_URL: redis://redis:6379
+  UPLOAD_DIR: /data/uploads
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  LLM_MODEL: ${LLM_MODEL:-claude-sonnet-4-6}
+  EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clearchart
+      POSTGRES_PASSWORD: clearchart
+      POSTGRES_DB: clearchart
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clearchart"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    environment: *app-env
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/data/uploads        # shared with the worker (S3: shared storage)
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    build: .
+    command: arq worker.WorkerSettings
+    environment: *app-env
+    volumes:
+      - uploads:/data/uploads        # same volume — worker reads what api wrote
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  uploads:

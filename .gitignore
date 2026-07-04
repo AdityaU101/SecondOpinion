@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local data
+*.db
+uploads/
+backend/uploads/
+backend/chroma_data/
+
+# Generated RAG cache (rebuilt on startup)
+backend/kb/faiss*.index
+backend/kb/embeddings*.pkl
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,16 @@
+# Keep the build context small & the image clean
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+**/.env
+**/*.db
+backend/uploads/
+uploads/
+backend/kb/faiss*.index
+backend/kb/embeddings*.pkl
+backend/chroma_data/
+.git/
+.gitignore
+README.md
+*.md

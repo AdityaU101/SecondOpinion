@@ -1,0 +1,92 @@
+[
+  {
+    "source": "USPSTF — Statin Use for Primary Prevention of CVD",
+    "passage": "The USPSTF recommends prescribing a statin for the primary prevention of CVD events and mortality for adults aged 40 to 75 years who have 1 or more CVD risk factors (dyslipidemia, diabetes, hypertension, or smoking) and an estimated 10-year CVD event risk of 10% or greater.",
+    "url": "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/statin-use-in-adults-preventive-medication"
+  },
+  {
+    "source": "ADA Standards of Care — Pre-Diabetes",
+    "passage": "Fasting plasma glucose 100 to 125 mg/dL is classified as impaired fasting glucose, indicating pre-diabetes. Referral to an intensive behavioral lifestyle intervention program modeled on the Diabetes Prevention Program is recommended to prevent or delay progression to type 2 diabetes.",
+    "url": "https://diabetesjournals.org/care/issue/47/Supplement_1"
+  },
+  {
+    "source": "ADA Standards of Care — HbA1c Targets",
+    "passage": "An A1C goal of less than 7% is appropriate for many non-pregnant adults with diabetes. An A1C of 5.7–6.4% indicates pre-diabetes and warrants lifestyle intervention. An A1C of 6.5% or higher on two separate tests is diagnostic for diabetes.",
+    "url": "https://diabetesjournals.org/care/issue/47/Supplement_1"
+  },
+  {
+    "source": "NIH MedlinePlus — LDL Cholesterol Reference Ranges",
+    "passage": "An LDL level of less than 100 mg/dL is considered optimal. 100–129 mg/dL is near optimal. 130–159 mg/dL is borderline high. 160–189 mg/dL is high. 190 mg/dL and above is very high. Dietary modification and regular physical activity are first-line treatments for elevated LDL.",
+    "url": "https://medlineplus.gov/cholesterollevelswhatyouneedtoknow.html"
+  },
+  {
+    "source": "NIH MedlinePlus — HDL Cholesterol",
+    "passage": "For HDL cholesterol, higher levels are associated with lower risk of heart disease. An HDL level below 40 mg/dL for men and below 50 mg/dL for women is considered low and a risk factor for cardiovascular disease. Levels of 60 mg/dL or above are considered protective.",
+    "url": "https://medlineplus.gov/hdlthegoodcholesterol.html"
+  },
+  {
+    "source": "NIH MedlinePlus — Triglycerides",
+    "passage": "Normal triglyceride levels are below 150 mg/dL. Borderline high is 150–199 mg/dL. High is 200–499 mg/dL. Very high is 500 mg/dL or above. High triglycerides combined with low HDL and high LDL significantly increase the risk of heart disease and stroke.",
+    "url": "https://medlineplus.gov/triglycerides.html"
+  },
+  {
+    "source": "NKF KDIGO — Chronic Kidney Disease Staging",
+    "passage": "eGFR categories: G1 (≥90 mL/min/1.73m², normal or high), G2 (60–89, mildly decreased), G3a (45–59, mildly to moderately decreased), G3b (30–44, moderately to severely decreased), G4 (15–29, severely decreased), G5 (<15, kidney failure). An eGFR below 60 for more than 3 months meets the criteria for chronic kidney disease.",
+    "url": "https://kdigo.org/guidelines/ckd-evaluation-and-management/"
+  },
+  {
+    "source": "AST/ALT Liver Enzymes — Normal Ranges",
+    "passage": "Alanine aminotransferase (ALT) normal range is 7–56 U/L. Aspartate aminotransferase (AST) normal range is 10–40 U/L. Levels more than 3 times the upper limit of normal may indicate significant liver disease and warrant further investigation, including imaging and specialist referral.",
+    "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4052701/"
+  },
+  {
+    "source": "AHA — Blood Pressure Classification",
+    "passage": "Normal blood pressure is less than 120/80 mmHg. Elevated is systolic 120–129 and diastolic less than 80. Stage 1 hypertension is 130–139 systolic or 80–89 diastolic. Stage 2 hypertension is 140 or higher systolic or 90 or higher diastolic. Hypertensive crisis requires immediate medical attention at readings above 180/120 mmHg.",
+    "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings"
+  },
+  {
+    "source": "NIH — Anemia Thresholds (WHO Definition)",
+    "passage": "Anemia is defined as hemoglobin below 13.0 g/dL in adult men and below 12.0 g/dL in adult non-pregnant women. Mild anemia: 11–12.9 g/dL (men) / 11–11.9 g/dL (women). Moderate: 8–10.9 g/dL. Severe: below 8 g/dL. Causes include iron deficiency, B12 deficiency, chronic disease, and hemolysis.",
+    "url": "https://www.who.int/publications/i/item/9789241596657"
+  },
+  {
+    "source": "American Thyroid Association — TSH Reference Range",
+    "passage": "The normal TSH reference range for adults is approximately 0.4–4.0 mIU/L. TSH above 4.0 mIU/L may indicate hypothyroidism; below 0.4 mIU/L may indicate hyperthyroidism. Subclinical hypothyroidism (mildly elevated TSH with normal T4) is common and may be monitored without immediate treatment depending on symptoms.",
+    "url": "https://www.thyroid.org/patient-thyroid-information/what-is-thyroid/"
+  },
+  {
+    "source": "USPSTF — Colorectal Cancer Screening",
+    "passage": "The USPSTF recommends screening for colorectal cancer in all adults aged 45 to 75 years. Screening options include annual high-sensitivity fecal immunochemical test (FIT), colonoscopy every 10 years, CT colonography every 5 years, or flexible sigmoidoscopy every 5 years. Decisions for adults 76–85 should be individualized.",
+    "url": "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening"
+  },
+  {
+    "source": "USPSTF — Breast Cancer Screening",
+    "passage": "The USPSTF recommends biennial screening mammography for women aged 40 to 74 years. The decision to start screening mammography before age 50 should be an individual one, based on patient context and preferences regarding specific benefits and harms.",
+    "url": "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening"
+  },
+  {
+    "source": "CDC — Metabolic Syndrome Diagnostic Criteria",
+    "passage": "Metabolic syndrome is diagnosed when three or more of the following are present: waist circumference >40 inches (men) or >35 inches (women); triglycerides ≥150 mg/dL; HDL <40 mg/dL (men) or <50 mg/dL (women); blood pressure ≥130/85 mmHg; fasting glucose ≥100 mg/dL. It significantly increases risk of heart disease, stroke, and diabetes.",
+    "url": "https://www.cdc.gov/heartdisease/metabolic_syndrome.htm"
+  },
+  {
+    "source": "KDIGO — Creatinine and GFR in CKD",
+    "passage": "Serum creatinine alone is an imprecise measure of kidney function; eGFR calculated from creatinine, age, and sex is preferred. Creatinine normal range: 0.6–1.2 mg/dL (adult men), 0.5–1.1 mg/dL (adult women). A sudden rise in creatinine of more than 0.3 mg/dL within 48 hours may indicate acute kidney injury requiring urgent evaluation.",
+    "url": "https://kdigo.org/guidelines/acute-kidney-injury/"
+  },
+  {
+    "source": "NIH — Platelet Count and Clinical Significance",
+    "passage": "Normal platelet count is 150,000–400,000 per microliter (150–400 K/µL). Thrombocytopenia (low platelets, <150 K/µL) can cause bleeding; below 50 K/µL is considered severe. Thrombocytosis (>400 K/µL) may be reactive (due to infection or inflammation) or, rarely, indicative of a bone marrow disorder.",
+    "url": "https://medlineplus.gov/lab-tests/platelet-count/"
+  },
+  {
+    "source": "AHA/ACC — Total Cardiovascular Risk Assessment",
+    "passage": "Cardiovascular risk should not be assessed from a single biomarker. A 10-year ASCVD risk score combining age, sex, race, cholesterol, blood pressure, diabetes status, and smoking status provides a more accurate picture. Patients with >7.5% 10-year risk should discuss statin therapy with their physician.",
+    "url": "https://www.heart.org/en/professional/guidelines-and-statements/calculate-10-year-risk"
+  },
+  {
+    "source": "ADA — Type 2 Diabetes Medication Initiation",
+    "passage": "Metformin (if tolerated and not contraindicated) is the preferred initial medication for most patients with type 2 diabetes alongside lifestyle management. In patients with established cardiovascular disease, heart failure, or CKD, GLP-1 receptor agonists or SGLT-2 inhibitors with proven cardiovascular benefit are preferred regardless of HbA1c.",
+    "url": "https://diabetesjournals.org/care/issue/47/Supplement_1"
+  }
+]

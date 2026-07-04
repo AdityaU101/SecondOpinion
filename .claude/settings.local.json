@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import fastapi, anthropic, arq, sqlalchemy, pydantic_settings\")",
+      "Bash(echo \"exit: $?\")"
+    ]
+  }
+}

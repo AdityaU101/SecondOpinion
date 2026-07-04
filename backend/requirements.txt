@@ -1,0 +1,41 @@
+# ── WEB FRAMEWORK ─────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9      # required for file uploads in FastAPI
+
+# ── DATA VALIDATION / CONFIG ──────────────────────────────
+pydantic==2.7.1
+pydantic-settings==2.3.4     # typed settings loaded from env / .env
+
+# ── AI / LLM (Groq) ───────────────────────────────────────
+groq>=0.11.0                 # OpenAI-compatible function calling for structured output
+
+# ── EMBEDDINGS (local, keyless) ───────────────────────────
+# all-MiniLM-L6-v2 (384-dim) runs on CPU, no API key, no per-call cost.
+# This is what makes the RAG layer work out-of-the-box in Docker.
+sentence-transformers==3.0.1
+
+# ── VECTOR SEARCH ─────────────────────────────────────────
+faiss-cpu==1.8.0             # in-process vector index (cosine via inner product)
+numpy==1.26.4
+
+# ── DOCUMENT PARSING ──────────────────────────────────────
+pdfplumber==0.11.1           # text-based PDF extraction
+Pillow==10.3.0               # image handling (required by pytesseract)
+pytesseract==0.3.10          # OCR for scanned PDFs / images (needs tesseract binary)
+
+# ── PDF EXPORT ────────────────────────────────────────────
+fpdf2==2.7.9                 # pure-Python PDF generation (no native libs needed)
+
+# ── DATABASE ──────────────────────────────────────────────
+sqlalchemy==2.0.30           # async ORM
+asyncpg==0.29.0              # async PostgreSQL driver (production)
+aiosqlite==0.20.0            # async SQLite driver (zero-config local fallback)
+
+# ── MESSAGE QUEUE / BACKGROUND WORKER ─────────────────────
+arq==0.26.0                  # async Redis task queue (producer/consumer decoupling)
+# arq pulls a compatible redis client itself — don't pin redis separately.
+
+# ── UTILITIES ─────────────────────────────────────────────
+python-dotenv==1.0.1
+httpx==0.27.0
