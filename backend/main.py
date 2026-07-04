@@ -10,6 +10,8 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 
 from api.routes import router
+from api.auth import router as auth_router
+from api.chat import router as chat_router
 from config import settings
 from db.database import create_tables
 from storage import ensure_upload_dir
@@ -67,6 +69,8 @@ app.add_middleware(
 
 # ── API ROUTES ────────────────────────────────────────────
 app.include_router(router)
+app.include_router(auth_router)
+app.include_router(chat_router)
 
 # ── SERVE FRONTEND ────────────────────────────────────────
 # Open http://localhost:8000 → serves the UI directly.
@@ -87,6 +91,22 @@ if frontend_dir.exists():
     @app.get("/app.js", include_in_schema=False)
     async def serve_js():
         return FileResponse(str(frontend_dir / "app.js"), media_type="application/javascript")
+
+    @app.get("/site.js", include_in_schema=False)
+    async def serve_site_js():
+        return FileResponse(str(frontend_dir / "site.js"), media_type="application/javascript")
+
+    @app.get("/app.html", include_in_schema=False)
+    async def serve_app_page():
+        return FileResponse(str(frontend_dir / "app.html"))
+
+    @app.get("/login.html", include_in_schema=False)
+    async def serve_login_page():
+        return FileResponse(str(frontend_dir / "login.html"))
+
+    @app.get("/index.html", include_in_schema=False)
+    async def serve_index_page():
+        return FileResponse(str(frontend_dir / "index.html"))
 
 
 # ── HEALTH CHECK ──────────────────────────────────────────

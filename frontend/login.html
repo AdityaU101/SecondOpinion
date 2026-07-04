@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — ClearChart</title>
+  <script>
+    (function () {
+      var t = localStorage.getItem('clearchart-theme');
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ── HEADER (minimal) ───────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <a class="logo" href="index.html">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28">
+              <stop offset="0" stop-color="#12907C"/>
+              <stop offset="1" stop-color="#0A5F52"/>
+            </linearGradient>
+          </defs>
+          <rect width="28" height="28" rx="8" fill="url(#logo-grad)"/>
+          <path d="M8 14h3l2-5 3 10 2-5h2" stroke="#EFFCF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="logo-text">ClearChart</span>
+      </a>
+      <nav class="nav">
+        <a href="index.html" class="nav-link">← Back to home</a>
+        <button class="theme-toggle" onclick="ccToggleTheme()" aria-label="Switch between light and dark theme">
+          <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── AUTH ──────────────────────────────────────────────── -->
+  <main class="auth-main">
+    <div class="auth-card">
+
+      <!-- Sign in -->
+      <div id="signin-form">
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-sub">Sign in to analyze your medical records.</p>
+
+        <div class="auth-error" id="signin-error"></div>
+
+        <form onsubmit="submitSignin(event)">
+          <div class="field">
+            <label for="si-email">Email</label>
+            <input id="si-email" type="email" autocomplete="email" placeholder="you@example.com" required />
+          </div>
+          <div class="field">
+            <label for="si-password">Password</label>
+            <input id="si-password" type="password" autocomplete="current-password" placeholder="Your password" required />
+          </div>
+          <button type="submit" class="btn-primary auth-submit" id="signin-btn">
+            Sign in
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </form>
+
+        <p class="auth-foot">New to ClearChart? <button onclick="showAuthForm('signup')">Create an account</button></p>
+      </div>
+
+      <!-- Create account -->
+      <div id="signup-form" style="display:none">
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-sub">Free forever. Your documents are never stored.</p>
+
+        <div class="auth-error" id="signup-error"></div>
+
+        <form onsubmit="submitSignup(event)">
+          <div class="field">
+            <label for="su-name">Name</label>
+            <input id="su-name" type="text" autocomplete="name" placeholder="Your name" required maxlength="120" />
+          </div>
+          <div class="field">
+            <label for="su-email">Email</label>
+            <input id="su-email" type="email" autocomplete="email" placeholder="you@example.com" required />
+          </div>
+          <div class="field">
+            <label for="su-password">Password</label>
+            <input id="su-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8" />
+          </div>
+          <button type="submit" class="btn-primary auth-submit" id="signup-btn">
+            Create account
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </form>
+
+        <p class="auth-foot">Already have an account? <button onclick="showAuthForm('signin')">Sign in</button></p>
+      </div>
+
+      <div class="auth-divider">or</div>
+
+      <button class="btn-outline auth-guest" onclick="continueAsGuest()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Explore as a guest
+      </button>
+
+      <p class="auth-note">ClearChart provides health literacy support only — not medical advice. Guest sessions keep everything on this device.</p>
+    </div>
+  </main>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────── -->
+  <footer class="footer">
+    <p>ClearChart · Built with Python, FastAPI, Groq &amp; Neon · Not a medical device</p>
+  </footer>
+
+  <script src="site.js"></script>
+  <script>
+    // Already signed in? Straight to the app.
+    if (ccGetSession()) window.location.replace('app.html');
+
+    function showAuthForm(which) {
+      document.getElementById('signin-form').style.display = which === 'signin' ? '' : 'none';
+      document.getElementById('signup-form').style.display = which === 'signup' ? '' : 'none';
+      hideError('signin'); hideError('signup');
+    }
+
+    function showError(which, message) {
+      const el = document.getElementById(`${which}-error`);
+      el.textContent = message;
+      el.classList.add('show');
+    }
+
+    function hideError(which) {
+      document.getElementById(`${which}-error`).classList.remove('show');
+    }
+
+    async function authRequest(path, body, which, btnId) {
+      hideError(which);
+      const btn = document.getElementById(btnId);
+      btn.classList.add('loading');
+      try {
+        const res = await fetch(`${CC_API}/auth/${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(typeof data.detail === 'string' ? data.detail : 'Something went wrong. Please try again.');
+        }
+        ccSetSession({ token: data.token, name: data.name, email: data.email, guest: false });
+        window.location.href = 'app.html';
+      } catch (err) {
+        const offline = err instanceof TypeError; // network failure
+        showError(which, offline
+          ? 'Cannot reach the ClearChart server. Make sure the backend is running, or continue as a guest below.'
+          : err.message);
+      } finally {
+        btn.classList.remove('loading');
+      }
+    }
+
+    function submitSignin(e) {
+      e.preventDefault();
+      authRequest('login', {
+        email: document.getElementById('si-email').value,
+        password: document.getElementById('si-password').value,
+      }, 'signin', 'signin-btn');
+    }
+
+    function submitSignup(e) {
+      e.preventDefault();
+      authRequest('register', {
+        name: document.getElementById('su-name').value,
+        email: document.getElementById('su-email').value,
+        password: document.getElementById('su-password').value,
+      }, 'signup', 'signup-btn');
+    }
+
+    function continueAsGuest() {
+      ccSetSession({ token: null, name: 'Guest', email: null, guest: true });
+      window.location.href = 'app.html';
+    }
+  </script>
+</body>
+</html>

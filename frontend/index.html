@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClearChart — Understand Your Medical Records</title>
+  <script>
+    // Set theme before first paint to avoid a flash of the wrong mode.
+    (function () {
+      var t = localStorage.getItem('clearchart-theme');
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,7 +24,7 @@
   <!-- ── HEADER ─────────────────────────────────────────────── -->
   <header class="header">
     <div class="header-inner">
-      <div class="logo">
+      <a class="logo" href="index.html">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
           <defs>
             <linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28">
@@ -26,27 +36,37 @@
           <path d="M8 14h3l2-5 3 10 2-5h2" stroke="#EFFCF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="logo-text">ClearChart</span>
-      </div>
+      </a>
       <nav class="nav">
-        <a href="#bmi-card" class="nav-link nav-link-accent" onclick="goToBmi(event)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
-          BMI Calculator
-        </a>
+        <a href="#features" class="nav-link">Features</a>
         <a href="#how-it-works" class="nav-link">How it works</a>
         <a href="#privacy" class="nav-link">Privacy</a>
+        <a href="login.html" class="nav-link" id="signin-link">Sign in</a>
+        <button class="theme-toggle" onclick="ccToggleTheme()" aria-label="Switch between light and dark theme">
+          <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a href="login.html" class="nav-cta" id="open-app-link">Get started</a>
       </nav>
     </div>
   </header>
 
   <!-- ── MAIN ───────────────────────────────────────────────── -->
   <main>
+    <section class="view active">
 
-    <!-- STATE 1: UPLOAD ──────────────────────────────────────── -->
-    <section id="upload-view" class="view active">
+      <!-- HERO -->
       <div class="hero">
-        <span class="badge">Free · No account required</span>
-        <h1 class="hero-title">Understand your medical records<br/>in plain English</h1>
-        <p class="hero-sub">Upload a lab report, discharge note, or doctor's letter. ClearChart translates the medical language, flags anything unusual, and generates the exact questions to bring to your next appointment.</p>
+        <span class="badge">Free · Private · No medical jargon</span>
+        <h1 class="hero-title">Understand your medical records in plain English</h1>
+        <p class="hero-sub">Upload a lab report, discharge note, or doctor's letter. ClearChart translates the medical language, flags anything unusual, suggests foods that help, and prepares the exact questions to bring to your next appointment.</p>
+        <div class="hero-cta-row">
+          <a href="login.html" class="btn-primary btn-hero" id="hero-cta">
+            Get started free
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          <a href="#how-it-works" class="btn-outline btn-outline-lg">See how it works</a>
+        </div>
         <div class="ekg" aria-hidden="true">
           <svg viewBox="0 0 640 56" preserveAspectRatio="none">
             <path class="ekg-line" d="M0 28 L150 28 L172 28 L188 8 L206 48 L226 28 L300 28 L328 28 L344 16 L360 44 L376 28 L640 28"/>
@@ -55,106 +75,45 @@
         </div>
       </div>
 
-      <!-- Upload card -->
-      <div class="upload-card" id="upload-card">
-        <!-- Tab row -->
-        <div class="tab-row" role="tablist">
-          <button class="tab active" role="tab" aria-selected="true" data-tab="file" onclick="switchTab('file')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            Upload file
-          </button>
-          <button class="tab" role="tab" aria-selected="false" data-tab="text" onclick="switchTab('text')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-            Paste text
-          </button>
-        </div>
-
-        <!-- File upload panel -->
-        <div id="panel-file" class="tab-panel active">
-          <div class="dropzone" id="dropzone"
-               role="button" tabindex="0" aria-label="Upload medical document"
-               ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
-               onclick="document.getElementById('file-input').click()"
-               onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('file-input').click()">
-            <div class="drop-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <!-- FEATURES -->
+      <section id="features" class="features-section">
+        <span class="eyebrow">What you get</span>
+        <h2 class="section-title">Everything between "results are in" and "I understand them"</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             </div>
-            <p class="drop-title">Drop your file here</p>
-            <p class="drop-sub">PDF, JPG, PNG · up to 20 MB</p>
-            <button class="btn-outline" tabindex="-1">Browse files</button>
-            <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="onFileSelected(event)" />
+            <h3 class="feature-title">Plain-language reports</h3>
+            <p class="feature-desc">Every value explained the way a good doctor would over coffee — what it is, why it matters, and whether yours needs attention.</p>
           </div>
-          <!-- Selected file preview -->
-          <div id="file-preview" class="file-preview hidden">
-            <div class="file-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
-            <div class="file-info">
-              <span id="file-name" class="file-name"></span>
-              <span id="file-size" class="file-size"></span>
+            <h3 class="feature-title">Grounded in real guidelines</h3>
+            <p class="feature-desc">Findings are cross-referenced against NIH, WHO, and USPSTF clinical guidelines — with the sources cited so you can verify.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a9 9 0 0 0-9 9c0 4 2.5 7.5 6 8.7V22h6v-2.3c3.5-1.2 6-4.7 6-8.7a9 9 0 0 0-9-9z"/><path d="M9 11h6"/><path d="M12 8v6"/></svg>
             </div>
-            <button class="remove-file" aria-label="Remove file" onclick="removeFile()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <h3 class="feature-title">Nutrition that fills the gaps</h3>
+            <p class="feature-desc">Low on iron, vitamin D, or hemoglobin? ClearChart suggests everyday foods that naturally support the values your report flagged.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3 class="feature-title">Ask anything, anytime</h3>
+            <p class="feature-desc">A built-in assistant answers your questions about the report in plain language — day or night, without an appointment.</p>
           </div>
         </div>
+      </section>
 
-        <!-- Text paste panel -->
-        <div id="panel-text" class="tab-panel">
-          <textarea id="text-input" class="text-area" placeholder="Paste your medical text here — lab results, doctor notes, discharge summaries..." rows="10" oninput="onTextInput()"></textarea>
-          <p class="char-count"><span id="char-count">0</span> characters</p>
-        </div>
-
-        <!-- Disclaimer -->
-        <div class="disclaimer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>ClearChart provides health literacy support only — not medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional.</span>
-        </div>
-
-        <button class="btn-primary" id="analyze-btn" disabled onclick="startAnalysis()">
-          <span class="btn-text">Analyze my records</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-      </div>
-
-      <!-- BMI Calculator -->
-      <div class="bmi-card" id="bmi-card">
-        <div class="bmi-head">
-          <h3 class="bmi-title">BMI Calculator</h3>
-          <div class="bmi-unit-toggle">
-            <button class="bmi-unit-btn active" data-units="metric" onclick="toggleBmiUnits('metric')">Metric</button>
-            <button class="bmi-unit-btn" data-units="imperial" onclick="toggleBmiUnits('imperial')">Imperial</button>
-          </div>
-        </div>
-        <p class="bmi-sub">See how your body mass index compares to the healthy range — then add it to your analysis as a health parameter.</p>
-        <div class="bmi-inputs">
-          <label class="bmi-field">
-            <span>Height</span>
-            <div class="bmi-input-wrap">
-              <input id="bmi-height" type="number" min="0" step="0.1" placeholder="170" oninput="computeBMI()"/>
-              <span class="bmi-unit" id="bmi-height-unit">cm</span>
-            </div>
-          </label>
-          <label class="bmi-field">
-            <span>Weight</span>
-            <div class="bmi-input-wrap">
-              <input id="bmi-weight" type="number" min="0" step="0.1" placeholder="70" oninput="computeBMI()"/>
-              <span class="bmi-unit" id="bmi-weight-unit">kg</span>
-            </div>
-          </label>
-        </div>
-        <div class="bmi-result hidden" id="bmi-result">
-          <div class="bmi-readout">
-            <span class="bmi-number" id="bmi-value">—</span>
-            <span class="bmi-cat" id="bmi-category"></span>
-          </div>
-          <div id="bmi-bar"></div>
-          <button class="btn-outline bmi-add" onclick="addBmiToReport()">Add BMI to my analysis</button>
-        </div>
-      </div>
-
-      <!-- How it works -->
+      <!-- HOW IT WORKS -->
       <section id="how-it-works" class="how-section">
+        <span class="eyebrow">Three steps</span>
         <h2 class="section-title">How it works</h2>
         <div class="steps">
           <div class="step">
@@ -172,162 +131,35 @@
           <div class="step">
             <div class="step-num">3</div>
             <h3 class="step-title">Get your plain-language report</h3>
-            <p class="step-desc">A clear summary, flagged items explained simply, and a list of specific questions ready to bring to your next appointment.</p>
+            <p class="step-desc">A clear summary, flagged items explained simply, nutrition tips, and questions ready for your next appointment.</p>
           </div>
         </div>
       </section>
 
-      <!-- Privacy section -->
+      <!-- PRIVACY -->
       <section id="privacy" class="privacy-section">
         <div class="privacy-card">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <div>
             <h3 class="privacy-title">Your data stays private</h3>
-            <p class="privacy-desc">Documents are processed in memory and never stored. Nothing is logged or retained after your session ends. No account needed.</p>
+            <p class="privacy-desc">Documents are processed in memory and never stored. Nothing is logged or retained after your session ends. Your account keeps only your name and email.</p>
           </div>
         </div>
       </section>
+
+      <!-- CTA BAND -->
+      <section class="cta-band">
+        <div class="cta-band-inner">
+          <h2 class="cta-title">Your next lab report doesn't have to be a mystery</h2>
+          <p class="cta-sub">Create a free account and get your first plain-language report in under a minute.</p>
+          <a href="login.html" class="btn-primary btn-hero">
+            Analyze my records
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      </section>
+
     </section>
-
-    <!-- STATE 2: PROCESSING ──────────────────────────────────── -->
-    <section id="processing-view" class="view" aria-live="polite">
-      <div class="processing-container">
-        <div class="pulse-ring" aria-hidden="true">
-          <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
-            <defs>
-              <linearGradient id="logo-grad-2" x1="0" y1="0" x2="28" y2="28">
-                <stop offset="0" stop-color="#12907C"/>
-                <stop offset="1" stop-color="#0A5F52"/>
-              </linearGradient>
-            </defs>
-            <rect width="28" height="28" rx="8" fill="url(#logo-grad-2)"/>
-            <path d="M8 14h3l2-5 3 10 2-5h2" stroke="#EFFCF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <h2 class="processing-title">Analyzing your records…</h2>
-        <p class="processing-sub" id="processing-step">Parsing document</p>
-
-        <div class="progress-bar-wrap" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-wrap">
-          <div class="progress-bar" id="progress-bar"></div>
-        </div>
-
-        <ul class="step-list" id="step-list">
-          <li class="step-item active" id="step-parse">
-            <span class="step-dot"></span>Parsing document
-          </li>
-          <li class="step-item" id="step-chunk">
-            <span class="step-dot"></span>Chunking &amp; embedding
-          </li>
-          <li class="step-item" id="step-retrieve">
-            <span class="step-dot"></span>Retrieving clinical guidelines
-          </li>
-          <li class="step-item" id="step-analyze">
-            <span class="step-dot"></span>Running analysis
-          </li>
-          <li class="step-item" id="step-report">
-            <span class="step-dot"></span>Generating report
-          </li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- STATE 3: RESULTS ─────────────────────────────────────── -->
-    <section id="results-view" class="view">
-      <div class="results-container">
-
-        <!-- Results header -->
-        <div class="results-header">
-          <div class="results-title-row">
-            <h2 class="results-title">Your report is ready</h2>
-            <div class="results-actions">
-              <button class="btn-outline-sm" onclick="exportPDF()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export PDF
-              </button>
-              <button class="btn-outline-sm" onclick="startOver()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-                New analysis
-              </button>
-            </div>
-          </div>
-
-          <!-- Urgency banner -->
-          <div class="urgency-banner" id="urgency-banner">
-            <span class="urgency-dot" id="urgency-dot"></span>
-            <span id="urgency-label"></span>
-          </div>
-        </div>
-
-        <!-- Result tabs -->
-        <div class="result-tab-row" role="tablist">
-          <button class="result-tab active" role="tab" data-rtab="summary" onclick="switchResultTab('summary')">Summary</button>
-          <button class="result-tab" role="tab" data-rtab="findings" onclick="switchResultTab('findings')">
-            Findings
-            <span class="finding-badge" id="finding-badge">0</span>
-          </button>
-          <button class="result-tab" role="tab" data-rtab="questions" onclick="switchResultTab('questions')">Doctor questions</button>
-          <button class="result-tab" role="tab" data-rtab="citations" onclick="switchResultTab('citations')">Sources</button>
-        </div>
-
-        <!-- Summary panel -->
-        <div id="rtab-summary" class="result-panel active">
-
-          <!-- Visual health snapshot (Groq-scored) -->
-          <div class="snapshot-card" id="snapshot-card" style="display:none">
-            <div class="snapshot-head">
-              <div class="wellness">
-                <div class="ring" id="wellness-ring" style="--p:0">
-                  <div class="ring-inner">
-                    <span class="ring-score" id="wellness-score">0</span>
-                    <span class="ring-label">Wellness</span>
-                  </div>
-                </div>
-              </div>
-              <div class="snapshot-intro">
-                <h3 class="panel-section-title">Visual health snapshot</h3>
-                <p class="snapshot-desc">An at-a-glance read on each body system, scored against a healthy baseline. Higher is healthier.</p>
-              </div>
-            </div>
-            <div class="snapshot-grid" id="snapshot-grid"></div>
-          </div>
-
-          <div class="summary-card">
-            <h3 class="panel-section-title">Plain-language summary</h3>
-            <p id="summary-text" class="summary-text"></p>
-          </div>
-          <div class="summary-card" id="context-card" style="display:none">
-            <h3 class="panel-section-title">What was detected</h3>
-            <p id="context-text" class="summary-text"></p>
-          </div>
-        </div>
-
-        <!-- Findings panel -->
-        <div id="rtab-findings" class="result-panel">
-          <p class="findings-intro">Each value is charted against the healthy range. The <strong>green band</strong> is where a healthy person's result falls; the <strong>dot</strong> marks yours.</p>
-          <div id="findings-list" class="findings-list"></div>
-        </div>
-
-        <!-- Questions panel -->
-        <div id="rtab-questions" class="result-panel">
-          <p class="questions-intro">These questions are generated from your specific document. Bring this list to your next appointment.</p>
-          <ol id="questions-list" class="questions-list"></ol>
-        </div>
-
-        <!-- Citations panel -->
-        <div id="rtab-citations" class="result-panel">
-          <p class="citations-intro">ClearChart grounds every finding in authoritative clinical sources. These are the guidelines referenced in your report.</p>
-          <div id="citations-list" class="citations-list"></div>
-        </div>
-
-        <!-- Disclaimer footer -->
-        <div class="results-disclaimer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span id="disclaimer-text">This report is for health literacy only. It is not a medical diagnosis or professional advice. Always consult a qualified healthcare professional before making any health decisions.</span>
-        </div>
-
-      </div>
-    </section>
-
   </main>
 
   <!-- ── FOOTER ─────────────────────────────────────────────── -->
@@ -335,6 +167,20 @@
     <p>ClearChart · Built with Python, FastAPI, Groq &amp; Neon · Not a medical device</p>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="site.js"></script>
+  <script>
+    // Signed-in visitors skip the login page.
+    (function () {
+      if (ccGetSession()) {
+        document.getElementById('open-app-link').href = 'app.html';
+        document.getElementById('open-app-link').textContent = 'Open app';
+        document.getElementById('hero-cta').href = 'app.html';
+        var signin = document.getElementById('signin-link');
+        signin.textContent = 'My reports';
+        signin.href = 'app.html';
+        document.querySelectorAll('.cta-band a.btn-primary').forEach(a => a.href = 'app.html');
+      }
+    })();
+  </script>
 </body>
 </html>

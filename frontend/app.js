@@ -5,6 +5,23 @@
 
 const API_BASE = 'http://localhost:8000/api/v1';
 
+// ── AUTH GUARD ────────────────────────────────────────────
+// app.html is only for signed-in (or guest) sessions.
+const session = ccGetSession();
+if (!session) {
+  window.location.replace('login.html');
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('chip-avatar').textContent = ccInitials(session.name);
+    document.getElementById('chip-name').textContent = session.name;
+    const greeting = document.getElementById('app-greeting');
+    if (greeting && session.name && !session.guest) {
+      const first = session.name.trim().split(/\s+/)[0];
+      greeting.textContent = `Let's read your records, ${first}`;
+    }
+  });
+}
+
 // ── STATE ─────────────────────────────────────────────────
 let state = {
   activeTab: 'file',       // 'file' | 'text'
@@ -12,6 +29,7 @@ let state = {
   textContent: '',
   currentJobId: null,
   pollInterval: null,
+  lastReport: null,        // completed report — powers chat context + nutrition
 };
 
 // ── TAB SWITCHING (upload tabs) ───────────────────────────
@@ -258,6 +276,7 @@ function updateProgress(pct) {
 
 // ── RENDER RESULTS ────────────────────────────────────────
 function showResults(report) {
+  state.lastReport = report;
   showView('results-view');
 
   // Urgency banner
@@ -282,6 +301,9 @@ function showResults(report) {
 
   // Visual health snapshot (Groq-scored)
   renderHealthSnapshot(report.health_snapshot || []);
+
+  // Nutrition guidance derived from the findings
+  renderNutrition(report.findings || []);
 
   // Findings
   const findingsList = document.getElementById('findings-list');
@@ -731,6 +753,300 @@ const MOCK_REPORT = {
   disclaimer: 'This report is for health literacy purposes only. It is not a medical diagnosis, clinical opinion, or professional advice. Always consult a qualified, licensed healthcare professional before making any decisions about your health.',
   confidence_score: 0.87,
 };
+
+// ── NUTRITION GUIDANCE ────────────────────────────────────
+// Maps a finding (parameter keywords + high/low direction) to everyday foods
+// that support that value. Deliberately conservative: food-first, no dosing,
+// no supplements beyond "talk to your doctor".
+const NUTRITION_RULES = [
+  {
+    match: /h(a?)emoglobin|\bhgb\b|\bhb\b|iron|ferritin|\brbc\b|red blood/i, when: 'low',
+    label: 'Iron & blood building',
+    why: 'Low hemoglobin or iron stores often respond well to iron-rich foods, especially paired with vitamin C for absorption.',
+    foods: [['🥬','Spinach'],['🫘','Lentils & beans'],['🥩','Lean red meat'],['🍗','Chicken liver'],['🎃','Pumpkin seeds'],['🍊','Citrus (helps absorption)'],['🌰','Dates & raisins'],['🥦','Broccoli']],
+  },
+  {
+    match: /vitamin\s*d|25-?oh|calcidiol/i, when: 'low',
+    label: 'Vitamin D support',
+    why: 'Vitamin D comes from sunlight and a short list of foods — worth combining both.',
+    foods: [['🐟','Salmon & sardines'],['🥚','Egg yolks'],['🍄','Mushrooms (sun-exposed)'],['🥛','Fortified milk'],['🌾','Fortified cereals'],['☀️','15–20 min morning sun']],
+  },
+  {
+    match: /vitamin\s*b\s*12|cobalamin/i, when: 'low',
+    label: 'Vitamin B12 support',
+    why: 'B12 is found almost only in animal foods, so vegetarians often need fortified options.',
+    foods: [['🐟','Fish & shellfish'],['🥚','Eggs'],['🥛','Milk & yogurt'],['🧀','Cheese'],['🌾','Fortified cereals'],['🍚','Nutritional yeast']],
+  },
+  {
+    match: /calcium/i, when: 'low',
+    label: 'Calcium support',
+    why: 'Calcium works alongside vitamin D — dairy is the classic source, but greens and seeds count too.',
+    foods: [['🥛','Milk & yogurt'],['🧀','Cheese'],['🥬','Kale & bok choy'],['🌱','Sesame seeds / tahini'],['🐟','Sardines with bones'],['🫘','White beans']],
+  },
+  {
+    match: /potassium/i, when: 'low',
+    label: 'Potassium support',
+    why: 'Potassium helps regulate blood pressure and muscle function; most produce is rich in it.',
+    foods: [['🍌','Bananas'],['🥔','Potatoes (with skin)'],['🥑','Avocado'],['🍠','Sweet potato'],['🫘','Beans'],['🍈','Melon'],['🥬','Leafy greens']],
+  },
+  {
+    match: /magnesium/i, when: 'low',
+    label: 'Magnesium support',
+    why: 'Magnesium supports muscles, nerves, and sleep — nuts and whole grains carry the most.',
+    foods: [['🌰','Almonds & cashews'],['🎃','Pumpkin seeds'],['🍫','Dark chocolate'],['🥬','Spinach'],['🌾','Whole grains'],['🫘','Black beans']],
+  },
+  {
+    match: /zinc/i, when: 'low',
+    label: 'Zinc support',
+    why: 'Zinc supports immunity and healing; meat and seeds are the richest everyday sources.',
+    foods: [['🦪','Oysters & shellfish'],['🥩','Beef'],['🎃','Pumpkin seeds'],['🫘','Chickpeas'],['🌰','Cashews'],['🥛','Yogurt']],
+  },
+  {
+    match: /folate|folic/i, when: 'low',
+    label: 'Folate support',
+    why: 'Folate is abundant in greens and legumes — light cooking preserves more of it.',
+    foods: [['🥬','Spinach & greens'],['🫘','Lentils'],['🥦','Broccoli'],['🥑','Avocado'],['🍊','Oranges'],['🌾','Fortified grains']],
+  },
+  {
+    match: /albumin|total protein/i, when: 'low',
+    label: 'Protein support',
+    why: 'Low albumin can reflect low protein intake; spreading protein across meals helps.',
+    foods: [['🥚','Eggs'],['🍗','Chicken & fish'],['🫘','Lentils & beans'],['🥛','Greek yogurt'],['🧀','Paneer / cottage cheese'],['🌰','Nuts']],
+  },
+  {
+    match: /\bhdl\b/i, when: 'low',
+    label: 'Raising HDL ("good" cholesterol)',
+    why: 'Healthy fats and regular movement are the food-and-lifestyle pair that lifts HDL.',
+    foods: [['🥑','Avocado'],['🫒','Olive oil'],['🐟','Fatty fish'],['🌰','Walnuts & almonds'],['🫘','Beans'],['🏃','Regular exercise']],
+  },
+  {
+    match: /\bldl\b|total cholesterol|non-?hdl/i, when: 'high',
+    label: 'Lowering LDL cholesterol',
+    why: 'Soluble fibre binds cholesterol, and swapping saturated fats for unsaturated ones helps most.',
+    foods: [['🌾','Oats & barley'],['🫘','Beans & lentils'],['🍎','Apples & pears'],['🌰','Almonds & walnuts'],['🫒','Olive oil (swap for butter)'],['🐟','Fatty fish'],['🍆','Okra & eggplant']],
+  },
+  {
+    match: /triglyceride/i, when: 'high',
+    label: 'Lowering triglycerides',
+    why: 'Cutting added sugar and refined carbs matters most; omega-3s directly lower triglycerides.',
+    foods: [['🐟','Salmon & sardines'],['🥬','Leafy greens'],['🌾','Whole grains over white'],['🫘','Legumes'],['🚫🥤','Fewer sugary drinks'],['🌰','Chia & flax seeds']],
+  },
+  {
+    match: /glucose|\bhba1c\b|a1c|sugar/i, when: 'high',
+    label: 'Steadying blood sugar',
+    why: 'Fibre-rich, low-glycemic foods slow sugar absorption and reduce spikes.',
+    foods: [['🌾','Oats & whole grains'],['🫘','Beans & chickpeas'],['🥦','Non-starchy vegetables'],['🌰','Nuts'],['🍓','Berries over juice'],['🥗','Vinegar-dressed salads'],['🚶','Post-meal walks']],
+  },
+  {
+    match: /sodium/i, when: 'high',
+    label: 'Reducing sodium',
+    why: 'Most sodium hides in packaged and restaurant food, not the salt shaker.',
+    foods: [['🍅','Fresh over canned'],['🍋','Lemon & herbs for flavour'],['🥔','Potassium-rich produce'],['🚫🥫','Fewer processed snacks'],['🍚','Home-cooked meals']],
+  },
+  {
+    match: /uric acid|urate/i, when: 'high',
+    label: 'Lowering uric acid',
+    why: 'Hydration and dairy help clear uric acid; organ meats and sugary drinks raise it.',
+    foods: [['💧','Plenty of water'],['🥛','Low-fat dairy'],['🍒','Cherries'],['🥦','Vegetables'],['☕','Coffee (moderate)'],['🚫🍺','Less alcohol & organ meat']],
+  },
+  {
+    match: /creatinine|\begfr\b|urea|\bbun\b/i, when: 'high',
+    label: 'Kidney-friendly eating',
+    why: 'When kidney markers drift, moderating salt and very high protein loads eases the workload — but changes here should be doctor-guided.',
+    foods: [['💧','Steady hydration'],['🥗','More plants, less processed'],['🧂','Lower salt'],['🍎','Apples & berries'],['⚕️','Ask about protein targets']],
+  },
+  {
+    match: /blood pressure|systolic|diastolic|hypertension/i, when: 'high',
+    label: 'DASH-style eating for blood pressure',
+    why: 'The DASH pattern — produce, whole grains, low-fat dairy, less salt — reliably lowers blood pressure.',
+    foods: [['🥬','Leafy greens'],['🍌','Bananas'],['🫐','Berries'],['🥛','Low-fat dairy'],['🌾','Whole grains'],['🧂','Less salt'],['🌰','Unsalted nuts']],
+  },
+  {
+    match: /\btsh\b|thyroid/i, when: 'high',
+    label: 'Thyroid-supportive nutrition',
+    why: 'A high TSH often means an underactive thyroid; iodine and selenium are its raw materials.',
+    foods: [['🧂','Iodized salt'],['🐟','Fish & seaweed'],['🌰','Brazil nuts (selenium)'],['🥚','Eggs'],['🥛','Dairy']],
+  },
+];
+
+function nutritionFor(finding) {
+  const status = (finding.status || '').toLowerCase();
+  if (status === 'normal') return null;
+  const direction = status === 'low' ? 'low' : 'high';   // treat "abnormal" as high-side caution
+  return NUTRITION_RULES.find(r => r.when === direction && r.match.test(finding.parameter || '')) || null;
+}
+
+function renderNutrition(findings) {
+  const list = document.getElementById('nutrition-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const seen = new Set();
+  const cards = [];
+  findings.forEach(f => {
+    const rule = nutritionFor(f);
+    if (!rule || seen.has(rule.label)) return;
+    seen.add(rule.label);
+    cards.push({ rule, finding: f });
+  });
+
+  if (cards.length === 0) {
+    list.innerHTML = `<div class="nutri-empty">No targeted nutrition suggestions this time — your flagged values don't map to a food-first fix, or everything is in range. A balanced plate (half vegetables and fruit, a quarter whole grains, a quarter protein) is still the best daily default.</div>`;
+    return;
+  }
+
+  cards.forEach(({ rule, finding }) => {
+    const div = document.createElement('div');
+    div.className = 'nutri-card';
+    div.innerHTML = `
+      <div class="nutri-head">
+        <span class="nutri-param">${escapeHtml(rule.label)}</span>
+        <span class="finding-ref">for ${escapeHtml(finding.parameter)} · ${escapeHtml(finding.value || '')}</span>
+      </div>
+      <p class="nutri-why">${escapeHtml(rule.why)}</p>
+      <div class="nutri-foods">
+        ${rule.foods.map(([emoji, name]) => `<span class="food-chip"><span aria-hidden="true">${emoji}</span>${escapeHtml(name)}</span>`).join('')}
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ── CHAT ASSISTANT ────────────────────────────────────────
+const chat = {
+  open: false,
+  history: [],       // {role, content} pairs sent to the API
+  busy: false,
+  greeted: false,
+};
+
+const CHAT_SUGGESTIONS_DEFAULT = [
+  'What can ClearChart do?',
+  'What does LDL mean?',
+  'How do I prepare for a blood test?',
+];
+const CHAT_SUGGESTIONS_REPORT = [
+  'Explain my report simply',
+  'Which finding matters most?',
+  'What should I eat more of?',
+];
+
+function toggleChat() {
+  chat.open = !chat.open;
+  document.getElementById('chat-panel').classList.toggle('open', chat.open);
+  document.getElementById('chat-fab').classList.toggle('open', chat.open);
+  if (chat.open) {
+    if (!chat.greeted) {
+      chat.greeted = true;
+      const name = session && !session.guest ? ` ${session.name.trim().split(/\s+/)[0]}` : '';
+      addChatMsg('bot', `Hi${name}! I'm the ClearChart assistant. Ask me about your report, a lab value, or any medical term you'd like in plain English.`);
+      renderChatSuggestions();
+    }
+    setTimeout(() => document.getElementById('chat-input').focus(), 220);
+  }
+}
+
+function renderChatSuggestions() {
+  const wrap = document.getElementById('chat-suggest');
+  const items = state.lastReport ? CHAT_SUGGESTIONS_REPORT : CHAT_SUGGESTIONS_DEFAULT;
+  wrap.innerHTML = items
+    .map(s => `<button class="suggest-chip" onclick="useSuggestion(this)">${escapeHtml(s)}</button>`)
+    .join('');
+}
+
+function useSuggestion(btn) {
+  document.getElementById('chat-input').value = btn.textContent;
+  sendChat();
+}
+
+function addChatMsg(role, text) {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function addTypingIndicator() {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg bot typing';
+  div.innerHTML = '<i></i><i></i><i></i>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function buildReportContext() {
+  const r = state.lastReport;
+  if (!r) return null;
+  const findings = (r.findings || [])
+    .map(f => `- ${f.parameter}: ${f.value} (${f.status}${f.reference_range ? `, ref ${f.reference_range}` : ''})`)
+    .join('\n');
+  return [
+    `Urgency: ${r.urgency}`,
+    `Summary: ${r.summary}`,
+    findings ? `Findings:\n${findings}` : '',
+  ].filter(Boolean).join('\n').slice(0, 7500);
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || chat.busy) return;
+
+  input.value = '';
+  autosizeChatInput();
+  document.getElementById('chat-suggest').innerHTML = '';
+
+  addChatMsg('user', text);
+  chat.history.push({ role: 'user', content: text });
+  chat.busy = true;
+  document.getElementById('chat-send').disabled = true;
+  const typing = addTypingIndicator();
+
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        history: chat.history.slice(0, -1).slice(-10),
+        report_context: buildReportContext(),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'The assistant is unavailable right now.');
+
+    typing.remove();
+    addChatMsg('bot', data.reply);
+    chat.history.push({ role: 'assistant', content: data.reply });
+  } catch (err) {
+    typing.remove();
+    const offline = err instanceof TypeError;
+    addChatMsg('bot', offline
+      ? "I can't reach the ClearChart server right now. Check that the backend is running, then try again."
+      : err.message);
+  } finally {
+    chat.busy = false;
+    document.getElementById('chat-send').disabled = false;
+    renderChatSuggestions();
+  }
+}
+
+function onChatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+function autosizeChatInput() {
+  const input = document.getElementById('chat-input');
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 96) + 'px';
+}
 
 // ── UTILITY ───────────────────────────────────────────────
 function escapeHtml(str) {

@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     # ── Storage ───────────────────────────────────────────
     upload_dir: str = "./uploads"
 
+    # ── Auth ──────────────────────────────────────────────
+    # HMAC secret for signing session tokens. MUST be overridden in prod.
+    secret_key: str = "clearchart-dev-secret-change-me"
+    token_ttl_days: int = 30
+
     # ── Misc ──────────────────────────────────────────────
     cors_origins: str = "*"                           # comma-separated in prod
     log_level: str = "INFO"

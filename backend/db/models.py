@@ -32,6 +32,23 @@ def _uuid() -> str:
     return str(uuid.uuid4())
 
 
+class User(Base):
+    """
+    A registered ClearChart user.
+
+    Passwords are stored as PBKDF2-HMAC-SHA256 hashes (salt$hash) — no
+    plaintext ever touches the database. Sessions are stateless HMAC-signed
+    tokens, so this table stays small and the web tier stays stateless.
+    """
+    __tablename__ = "users"
+
+    id            = Column(String(36), primary_key=True, default=_uuid)
+    email         = Column(String(255), unique=True, nullable=False, index=True)
+    name          = Column(String(120), nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at    = Column(DateTime(timezone=True), default=_now, nullable=False)
+
+
 class Job(Base):
     """
     Represents one analysis job.
