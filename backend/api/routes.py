@@ -46,18 +46,29 @@ MAX_BYTES = 20 * 1024 * 1024  # 20 MB
 
 # ── DB HELPERS ────────────────────────────────────────────
 
-async def _optional_user_id(authorization: str, db: AsyncSession) -> str | None:
-    """Resolve a Bearer token to a user id, or None for guests/invalid tokens.
-    Analysis stays open to guests; ownership is a bonus, never a gate."""
+async def _optional_owner(
+    authorization: str,
+    profile_header: str,
+    db: AsyncSession,
+) -> tuple[str | None, str | None]:
+    """Resolve a Bearer token (+ optional X-Profile-Id) to (user_id, profile_id).
+    Guests/invalid tokens get (None, None) — analysis stays open to everyone;
+    ownership is a bonus, never a gate. The profile id is verified against the
+    user, so a forged header can never attach reports to someone else."""
     token = authorization.removeprefix("Bearer ").strip()
     if not token:
-        return None
+        return None, None
     email = decode_token(token)
     if not email:
-        return None
+        return None, None
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    return user.id if user else None
+    if not user:
+        return None, None
+
+    from api.profiles import resolve_profile
+    profile = await resolve_profile(user, profile_header or None, db)
+    return user.id, profile.id
 
 
 async def _get_job(job_id: str, db: AsyncSession) -> Job:
@@ -91,6 +102,7 @@ async def analyze_upload(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     authorization: str = Header(default=""),
+    x_profile_id: str = Header(default="", alias="X-Profile-Id"),
     db: AsyncSession = Depends(get_db),
 ):
     """Accept a PDF or image → save to shared storage → enqueue analysis."""
@@ -104,6 +116,7 @@ async def analyze_upload(
     if len(content) > MAX_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 20 MB limit.")
 
+    user_id, profile_id = await _optional_owner(authorization, x_profile_id, db)
     job_id = str(uuid.uuid4())
     job = Job(
         job_id=job_id,
@@ -111,7 +124,8 @@ async def analyze_upload(
         progress=0,
         source_name=file.filename,
         input_type="file",
-        user_id=await _optional_user_id(authorization, db),
+        user_id=user_id,
+        profile_id=profile_id,
     )
     db.add(job)
     await db.commit()
@@ -135,9 +149,11 @@ async def analyze_text(
     background_tasks: BackgroundTasks,
     body: TextAnalysisRequest,
     authorization: str = Header(default=""),
+    x_profile_id: str = Header(default="", alias="X-Profile-Id"),
     db: AsyncSession = Depends(get_db),
 ):
     """Accept raw medical text → enqueue analysis."""
+    user_id, profile_id = await _optional_owner(authorization, x_profile_id, db)
     job_id = str(uuid.uuid4())
     job = Job(
         job_id=job_id,
@@ -145,7 +161,8 @@ async def analyze_text(
         progress=0,
         source_name="pasted-text",
         input_type="text",
-        user_id=await _optional_user_id(authorization, db),
+        user_id=user_id,
+        profile_id=profile_id,
     )
     db.add(job)
     await db.commit()
@@ -161,18 +178,28 @@ async def analyze_text(
 
 @router.get("/reports")
 async def list_reports(
+    profile_id: str | None = None,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    The signed-in user's completed analyses, newest first.
+    The signed-in user's completed analyses for one profile, newest first.
     Returns a compact shape: enough for the history list AND the per-parameter
     trend charts (numeric values + reference ranges), without re-fetching
-    every full report.
+    every full report. Legacy jobs (profile_id NULL) belong to the default
+    profile so pre-profile accounts keep their history.
     """
+    from api.profiles import resolve_profile
+    profile = await resolve_profile(user, profile_id, db)
+
+    profile_filter = (
+        (Job.profile_id == profile.id) | (Job.profile_id.is_(None))
+        if profile.is_default
+        else (Job.profile_id == profile.id)
+    )
     result = await db.execute(
         select(Job)
-        .where(Job.user_id == user.id, Job.status == "completed")
+        .where(Job.user_id == user.id, Job.status == "completed", profile_filter)
         .order_by(Job.created_at.desc())
         .limit(50)
     )
@@ -182,6 +209,7 @@ async def list_reports(
     for j in jobs:
         r = j.result or {}
         reports.append({
+            "profile_id": profile.id,
             "job_id": j.job_id,
             "created_at": j.created_at.isoformat() if j.created_at else None,
             "source_name": j.source_name,

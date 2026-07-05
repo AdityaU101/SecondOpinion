@@ -12,6 +12,8 @@ from pathlib import Path
 from api.routes import router
 from api.auth import router as auth_router
 from api.chat import router as chat_router
+from api.profiles import router as profiles_router
+from api.medications import router as medications_router
 from config import settings
 from db.database import create_tables
 from storage import ensure_upload_dir
@@ -71,6 +73,8 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(profiles_router)
+app.include_router(medications_router)
 
 # ── SERVE FRONTEND ────────────────────────────────────────
 # Open http://localhost:8000 → serves the UI directly.

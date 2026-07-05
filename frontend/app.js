@@ -12,13 +12,7 @@ if (!session) {
   window.location.replace('login.html');
 } else {
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('chip-avatar').textContent = ccInitials(session.name);
-    document.getElementById('chip-name').textContent = session.name;
-    const greeting = document.getElementById('app-greeting');
-    if (greeting && session.name && !session.guest) {
-      const first = session.name.trim().split(/\s+/)[0];
-      greeting.textContent = `Let's read your records, ${first}`;
-    }
+    initProfiles();
   });
 }
 
@@ -292,11 +286,11 @@ function showResults(report) {
   };
   document.getElementById('urgency-label').textContent = urgencyMessages[report.urgency] || '';
 
-  // Summary
-  document.getElementById('summary-text').textContent = report.summary;
+  // Summary (escaped, then medical terms become interactive popovers)
+  document.getElementById('summary-text').innerHTML = linkifyTerms(escapeHtml(report.summary));
   if (report.patient_context) {
     document.getElementById('context-card').style.display = '';
-    document.getElementById('context-text').textContent = report.patient_context;
+    document.getElementById('context-text').innerHTML = linkifyTerms(escapeHtml(report.patient_context));
   } else {
     document.getElementById('context-card').style.display = 'none';
   }
@@ -329,8 +323,8 @@ function showResults(report) {
     li.innerHTML = `
       <div class="q-num">${i + 1}</div>
       <div class="q-body">
-        <p class="q-text">${escapeHtml(q.question)}</p>
-        ${q.context ? `<p class="q-context">${escapeHtml(q.context)}</p>` : ''}
+        <p class="q-text">${linkifyTerms(escapeHtml(q.question))}</p>
+        ${q.context ? `<p class="q-context">${linkifyTerms(escapeHtml(q.context))}</p>` : ''}
       </div>`;
     qList.appendChild(li);
   });
@@ -376,7 +370,7 @@ function buildFindingCard(f) {
       </div>
     </div>
     ${renderComparisonBar(f)}
-    <p class="finding-explanation">${escapeHtml(f.explanation)}</p>`;
+    <p class="finding-explanation">${linkifyTerms(escapeHtml(f.explanation))}</p>`;
   return card;
 }
 
@@ -758,7 +752,185 @@ const MOCK_REPORT = {
 
 // ── AUTH HEADER HELPER ────────────────────────────────────
 function authHeaders() {
-  return session && session.token ? { Authorization: `Bearer ${session.token}` } : {};
+  if (!(session && session.token)) return {};
+  const headers = { Authorization: `Bearer ${session.token}` };
+  // Scope server-side writes/reads to the active family profile.
+  if (profileStore.activeId && !String(profileStore.activeId).startsWith('local')) {
+    headers['X-Profile-Id'] = profileStore.activeId;
+  }
+  return headers;
+}
+
+// ── FAMILY PROFILES ───────────────────────────────────────
+// Signed-in: profiles live server-side (/api/v1/profiles).
+// Guests: profiles live in localStorage, same shape, ids prefixed "local-".
+
+const profileStore = { list: [], activeId: null };
+
+const LOCAL_PROFILES_KEY = 'clearchart-profiles';
+const ACTIVE_PROFILE_KEY = 'clearchart-active-profile';
+
+function activeProfile() {
+  return profileStore.list.find(p => p.id === profileStore.activeId) || profileStore.list[0] || { id: null, name: session?.name || 'Me', relation: 'Self', is_default: true };
+}
+
+function saveLocalProfiles() {
+  localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profileStore.list));
+}
+
+async function initProfiles() {
+  if (session.token) {
+    try {
+      const res = await fetch(`${API_BASE}/profiles`, { headers: { Authorization: `Bearer ${session.token}` } });
+      if (!res.ok) throw new Error();
+      profileStore.list = (await res.json()).profiles || [];
+    } catch {
+      // Offline backend → behave like a single-profile account.
+      profileStore.list = [{ id: null, name: session.name, relation: 'Self', is_default: true }];
+    }
+  } else {
+    try {
+      profileStore.list = JSON.parse(localStorage.getItem(LOCAL_PROFILES_KEY) || 'null') || [];
+    } catch { profileStore.list = []; }
+    if (profileStore.list.length === 0) {
+      profileStore.list = [{ id: 'local-me', name: 'Me', relation: 'Self', is_default: true }];
+      saveLocalProfiles();
+    }
+  }
+
+  const saved = localStorage.getItem(ACTIVE_PROFILE_KEY);
+  profileStore.activeId = profileStore.list.some(p => p.id === saved)
+    ? saved
+    : (profileStore.list.find(p => p.is_default) || profileStore.list[0]).id;
+
+  renderProfileChip();
+  renderProfileMenu();
+}
+
+function renderProfileChip() {
+  const p = activeProfile();
+  document.getElementById('chip-avatar').textContent = ccInitials(p.name);
+  document.getElementById('chip-name').textContent = p.name;
+
+  const greeting = document.getElementById('app-greeting');
+  if (greeting) {
+    greeting.textContent = p.is_default
+      ? (session.guest ? "Let's read your records together" : `Let's read your records, ${p.name}`)
+      : `Reading records for ${p.name}`;
+  }
+  const medsName = document.getElementById('meds-profile-name');
+  if (medsName) medsName.textContent = p.is_default ? (session.guest ? 'you' : p.name) : p.name;
+}
+
+function renderProfileMenu() {
+  const list = document.getElementById('pm-list');
+  list.innerHTML = '';
+  profileStore.list.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'pm-item' + (p.id === profileStore.activeId ? ' active' : '');
+    btn.innerHTML = `
+      <span class="chip-avatar">${escapeHtml(ccInitials(p.name))}</span>
+      <span class="pm-item-info">
+        <span class="pm-item-name">${escapeHtml(p.name)}</span>
+        <span class="pm-item-rel">${escapeHtml(p.relation || '')}</span>
+      </span>
+      ${p.id === profileStore.activeId ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}`;
+    btn.addEventListener('click', () => switchProfile(p.id));
+    list.appendChild(btn);
+  });
+
+  document.getElementById('pm-account').textContent = session.guest
+    ? 'Guest session — profiles stay on this device'
+    : (session.email ? `${session.name} · ${session.email}` : session.name);
+}
+
+function toggleProfileMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('profile-menu');
+  const open = menu.classList.toggle('open');
+  document.getElementById('profile-btn').setAttribute('aria-expanded', open);
+  if (!open) hideAddProfile();
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('profile-menu');
+  if (menu && menu.classList.contains('open') && !e.target.closest('.profile-wrap')) {
+    menu.classList.remove('open');
+    hideAddProfile();
+  }
+});
+
+function showAddProfile() {
+  document.getElementById('pm-add-btn').style.display = 'none';
+  document.getElementById('pm-add-form').classList.add('open');
+  document.getElementById('pm-name').focus();
+}
+
+function hideAddProfile() {
+  document.getElementById('pm-add-btn').style.display = '';
+  document.getElementById('pm-add-form').classList.remove('open');
+}
+
+async function submitAddProfile(e) {
+  e.preventDefault();
+  const name = document.getElementById('pm-name').value.trim();
+  const relation = document.getElementById('pm-relation').value;
+  if (!name) return;
+
+  if (session.token) {
+    try {
+      const res = await fetch(`${API_BASE}/profiles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ name, relation }),
+      });
+      if (!res.ok) throw new Error();
+      profileStore.list.push(await res.json());
+    } catch {
+      showToast('Could not create the profile. Is the backend running?', 'error');
+      return;
+    }
+  } else {
+    profileStore.list.push({ id: `local-${Date.now()}`, name, relation, is_default: false });
+    saveLocalProfiles();
+  }
+
+  document.getElementById('pm-name').value = '';
+  hideAddProfile();
+  renderProfileMenu();
+  switchProfile(profileStore.list[profileStore.list.length - 1].id);
+}
+
+function switchProfile(id) {
+  if (id === profileStore.activeId) {
+    document.getElementById('profile-menu').classList.remove('open');
+    return;
+  }
+  profileStore.activeId = id;
+  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+
+  // Each profile gets its own context everywhere.
+  state.lastReport = null;
+  state.currentJobId = null;
+  chat.history = [];
+  chat.greeted = false;
+  document.getElementById('chat-msgs').innerHTML = '';
+  document.getElementById('chat-suggest').innerHTML = '';
+  meds.list = [];
+  meds.loaded = false;
+  document.getElementById('med-results').innerHTML = '';
+
+  renderProfileChip();
+  renderProfileMenu();
+  document.getElementById('profile-menu').classList.remove('open');
+
+  const p = activeProfile();
+  showToast(`Now viewing ${p.name}'s records`, 'info');
+
+  // Refresh whichever profile-scoped view is on screen.
+  if (document.getElementById('history-view').classList.contains('active')) showHistory();
+  else if (document.getElementById('meds-view').classList.contains('active')) showMeds();
+  else showView('upload-view');
 }
 
 // ── REPORT HISTORY ────────────────────────────────────────
@@ -771,14 +943,20 @@ function recordHistory(jobId, report) {
   if (session && session.token) return;   // server already owns it
   try {
     const entries = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
-    entries.unshift({ job_id: jobId, created_at: new Date().toISOString(), report });
-    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(entries.slice(0, 20)));
+    entries.unshift({
+      job_id: jobId,
+      created_at: new Date().toISOString(),
+      profile_id: profileStore.activeId,
+      report,
+    });
+    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(entries.slice(0, 40)));
   } catch (e) { console.warn('Could not save local history:', e); }
 }
 
 async function loadHistoryEntries() {
   if (session && session.token) {
-    const res = await fetch(`${API_BASE}/reports`, { headers: authHeaders() });
+    const pid = profileStore.activeId ? `?profile_id=${encodeURIComponent(profileStore.activeId)}` : '';
+    const res = await fetch(`${API_BASE}/reports${pid}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Could not load your reports.');
     const data = await res.json();
     return (data.reports || []).map(r => ({
@@ -790,8 +968,11 @@ async function loadHistoryEntries() {
       report: null,                        // fetched on open via /jobs/{id}
     }));
   }
-  // Guest: local entries carry the full report
-  const entries = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
+  // Guest: local entries carry the full report; scope to the active profile.
+  // Entries saved before profiles existed (no profile_id) belong to the default.
+  const active = activeProfile();
+  const entries = (JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]'))
+    .filter(e => e.profile_id === active.id || (!e.profile_id && active.is_default));
   return entries.map(e => ({
     job_id: e.job_id,
     created_at: e.created_at,
@@ -922,6 +1103,63 @@ function renderTrends(entries) {
   card.style.display = '';
   grid.innerHTML = '';
   series.forEach((s, i) => grid.appendChild(buildTrendCard(s, i)));
+
+  // Longitudinal summary — generated ONLY from the values above, never invented.
+  const summaryEl = document.getElementById('trends-summary');
+  const sentences = series.slice(0, 4).map(computeTrendSentence).filter(Boolean);
+  if (sentences.length) {
+    summaryEl.style.display = '';
+    summaryEl.innerHTML = sentences.map(s => `<p>${s}</p>`).join('');
+  } else {
+    summaryEl.style.display = 'none';
+  }
+}
+
+/* Build one grounded sentence per tracked metric: direction, size of the
+   change, and where the latest value sits against the healthy range. */
+function computeTrendSentence(series) {
+  const pts = series.points;
+  const first = pts[0].value;
+  const latest = pts[pts.length - 1].value;
+  if (first === 0 && latest === 0) return null;
+
+  const pct = first !== 0 ? Math.round(((latest - first) / Math.abs(first)) * 100) : null;
+  const unit = series.unit ? ` ${series.unit}` : '';
+  const span = `across ${pts.length} reports (${fmt(first)} → ${fmt(latest)}${unit})`;
+
+  // Direction: steady / steadily risen / steadily fallen / fluctuated
+  const diffs = [];
+  for (let i = 1; i < pts.length; i++) diffs.push(pts[i].value - pts[i - 1].value);
+  const rises = diffs.filter(d => d > 0).length;
+  const falls = diffs.filter(d => d < 0).length;
+
+  let movement;
+  if (pct !== null && Math.abs(pct) < 3) movement = 'has stayed steady';
+  else if (falls === 0) movement = `has ${diffs.length > 1 ? 'steadily ' : ''}risen ${Math.abs(pct)}%`;
+  else if (rises === 0) movement = `has ${diffs.length > 1 ? 'steadily ' : ''}fallen ${Math.abs(pct)}%`;
+  else movement = `has fluctuated, ending ${latest > first ? 'up' : 'down'} ${Math.abs(pct)}%`;
+
+  // Position against the healthy range, judged from the latest report's refs
+  const ref = pts[pts.length - 1];
+  const hasHigh = ref.ref_high !== null && ref.ref_high !== undefined && ref.ref_high < 9000;
+  const hasLow = ref.ref_low !== null && ref.ref_low !== undefined && ref.ref_low > 0;
+  let position = '';
+  if (hasHigh && latest > ref.ref_high) {
+    const prevOut = first > ref.ref_high;
+    position = prevOut && latest < first
+      ? ' — moving toward the healthy range, but still above it'
+      : ' and remains above the healthy range';
+  } else if (hasLow && latest < ref.ref_low) {
+    const prevOut = first < ref.ref_low;
+    position = prevOut && latest > first
+      ? ' — moving toward the healthy range, but still below it'
+      : ' and remains below the healthy range';
+  } else if (hasHigh || hasLow) {
+    const wasOut = (hasHigh && first > ref.ref_high) || (hasLow && first < ref.ref_low);
+    position = wasOut ? ' and is now within the healthy range' : ' and stays within the healthy range';
+  }
+
+  return `<strong>${escapeHtml(series.name)}</strong> ${movement} ${escapeHtml(span)}${position}.`;
 }
 
 function buildTrendCard(series, index) {
@@ -932,11 +1170,26 @@ function buildTrendCard(series, index) {
   const pts = series.points;
   const latest = pts[pts.length - 1];
   const previous = pts[pts.length - 2];
+  const first = pts[0];
   const delta = latest.value - previous.value;
   const deltaText = delta === 0 ? 'no change'
     : `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta))} since last report`;
+  const totalPct = first.value !== 0
+    ? Math.round(((latest.value - first.value) / Math.abs(first.value)) * 100)
+    : null;
+  const pctText = totalPct === null || totalPct === 0 ? ''
+    : `${totalPct > 0 ? '+' : '−'}${Math.abs(totalPct)}% overall`;
   const latestStatus = (latest.status || '').toLowerCase();
   const statusClass = { high: 'chip-high', low: 'chip-low', abnormal: 'chip-abnormal', normal: 'chip-normal' }[latestStatus] || 'chip-normal';
+
+  // Healthy range, phrased like the findings tab does
+  const hasHigh = latest.ref_high !== null && latest.ref_high !== undefined && latest.ref_high < 9000;
+  const hasLow = latest.ref_low !== null && latest.ref_low !== undefined && latest.ref_low > 0;
+  const unit = series.unit ? ` ${series.unit}` : '';
+  let rangeText = '';
+  if (hasLow && hasHigh) rangeText = `Healthy: ${fmt(latest.ref_low)}–${fmt(latest.ref_high)}${unit}`;
+  else if (hasHigh) rangeText = `Healthy: ≤ ${fmt(latest.ref_high)}${unit}`;
+  else if (hasLow) rangeText = `Healthy: ≥ ${fmt(latest.ref_low)}${unit}`;
 
   div.innerHTML = `
     <div class="trend-top">
@@ -946,10 +1199,12 @@ function buildTrendCard(series, index) {
     <div class="trend-readout">
       <span class="trend-value">${fmt(latest.value)}${series.unit ? ' ' + escapeHtml(series.unit) : ''}</span>
       <span class="trend-delta">${escapeHtml(deltaText)}</span>
+      ${pctText ? `<span class="trend-pct">${escapeHtml(pctText)}</span>` : ''}
     </div>
     ${buildSparklineSVG(pts)}
     <div class="trend-dates">
-      <span>${escapeHtml(shortDate(pts[0].date))}</span>
+      <span>${escapeHtml(shortDate(first.date))}</span>
+      ${rangeText ? `<span class="trend-range">${escapeHtml(rangeText)}</span>` : ''}
       <span>${escapeHtml(shortDate(latest.date))}</span>
     </div>`;
   return div;
@@ -1012,7 +1267,10 @@ function openPrep() {
   const r = state.lastReport;
   if (!r) { showToast('Run an analysis first — the prep sheet is built from your report.', 'error'); return; }
 
-  document.getElementById('prep-name').textContent = session && !session.guest ? session.name : '';
+  const prepProfile = activeProfile();
+  document.getElementById('prep-name').textContent = prepProfile.is_default && session.guest
+    ? ''
+    : `${prepProfile.name}${prepProfile.is_default ? '' : ` (${prepProfile.relation})`}`;
   document.getElementById('prep-date').textContent = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 
   // Top findings: worst severity first, max 5, skip normals unless nothing else
@@ -1270,7 +1528,9 @@ function buildReportContext() {
   const findings = (r.findings || [])
     .map(f => `- ${f.parameter}: ${f.value} (${f.status}${f.reference_range ? `, ref ${f.reference_range}` : ''})`)
     .join('\n');
+  const p = activeProfile();
   return [
+    p.is_default ? '' : `This report belongs to the user's family member: ${p.name} (${p.relation}).`,
     `Urgency: ${r.urgency}`,
     `Summary: ${r.summary}`,
     findings ? `Findings:\n${findings}` : '',
@@ -1333,6 +1593,500 @@ function autosizeChatInput() {
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 96) + 'px';
 }
+
+// ── MEDICATION REVIEW ─────────────────────────────────────
+// The list is per profile: server-side for accounts, localStorage for guests.
+// All label facts come from the backend's live openFDA/DailyMed retrieval.
+
+const meds = { list: [], loaded: false, analyzing: false, searchTimer: null };
+
+function localMedsKey() { return `clearchart-meds-${profileStore.activeId}`; }
+
+async function showMeds(e) {
+  if (e) e.preventDefault();
+  showView('meds-view');
+  renderProfileChip();
+  if (meds.loaded) { renderMedChips(); return; }
+
+  if (session.token) {
+    try {
+      const pid = profileStore.activeId ? `?profile_id=${encodeURIComponent(profileStore.activeId)}` : '';
+      const res = await fetch(`${API_BASE}/medications${pid}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error();
+      meds.list = (await res.json()).medications || [];
+    } catch {
+      meds.list = [];
+      showToast('Could not load saved medications. Is the backend running?', 'error');
+    }
+  } else {
+    try { meds.list = JSON.parse(localStorage.getItem(localMedsKey()) || '[]'); }
+    catch { meds.list = []; }
+  }
+  meds.loaded = true;
+  renderMedChips();
+}
+
+function renderMedChips() {
+  const wrap = document.getElementById('med-chips');
+  wrap.innerHTML = '';
+  meds.list.forEach(m => {
+    const chip = document.createElement('span');
+    chip.className = 'med-chip';
+    chip.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>
+      <span>${escapeHtml(m.name)}</span>
+      <button aria-label="Remove ${escapeHtml(m.name)}" onclick="removeMedication('${escapeHtml(m.id)}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`;
+    wrap.appendChild(chip);
+  });
+  document.getElementById('med-analyze-btn').disabled = meds.list.length === 0 || meds.analyzing;
+}
+
+function onMedInput() {
+  clearTimeout(meds.searchTimer);
+  const q = document.getElementById('med-input').value.trim();
+  const box = document.getElementById('med-suggest');
+  if (q.length < 2) { box.classList.remove('open'); return; }
+  meds.searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/medications/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      const items = data.suggestions || [];
+      if (!items.length) { box.classList.remove('open'); return; }
+      box.innerHTML = items
+        .map(s => `<button type="button" onclick="pickMedSuggestion(this)">${escapeHtml(s)}</button>`)
+        .join('');
+      box.classList.add('open');
+    } catch { box.classList.remove('open'); }
+  }, 300);
+}
+
+function pickMedSuggestion(btn) {
+  document.getElementById('med-input').value = btn.textContent;
+  document.getElementById('med-suggest').classList.remove('open');
+  addMedication();
+}
+
+async function addMedication() {
+  const input = document.getElementById('med-input');
+  const name = input.value.trim();
+  document.getElementById('med-suggest').classList.remove('open');
+  if (name.length < 2) return;
+  if (meds.list.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+    showToast(`${name} is already on the list`, 'info');
+    return;
+  }
+  if (meds.list.length >= 12) { showToast('You can track up to 12 medications per profile.', 'error'); return; }
+
+  if (session.token) {
+    try {
+      const res = await fetch(`${API_BASE}/medications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ name, profile_id: profileStore.activeId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Could not save the medication.');
+      meds.list.push(data);
+    } catch (err) {
+      showToast(err.message, 'error');
+      return;
+    }
+  } else {
+    meds.list.push({ id: `local-${Date.now()}`, name });
+    localStorage.setItem(localMedsKey(), JSON.stringify(meds.list));
+  }
+
+  input.value = '';
+  renderMedChips();
+  document.getElementById('med-results').innerHTML = '';   // list changed → stale analysis
+}
+
+async function removeMedication(id) {
+  const med = meds.list.find(m => m.id === id);
+  if (!med) return;
+
+  if (session.token && !String(id).startsWith('local')) {
+    try {
+      const res = await fetch(`${API_BASE}/medications/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: authHeaders(),
+      });
+      if (!res.ok && res.status !== 404) throw new Error();
+    } catch { showToast('Could not remove the medication.', 'error'); return; }
+  }
+  meds.list = meds.list.filter(m => m.id !== id);
+  if (!session.token) localStorage.setItem(localMedsKey(), JSON.stringify(meds.list));
+  renderMedChips();
+  document.getElementById('med-results').innerHTML = '';
+}
+
+async function analyzeMedications() {
+  if (meds.analyzing || meds.list.length === 0) return;
+  meds.analyzing = true;
+  const btn = document.getElementById('med-analyze-btn');
+  btn.disabled = true;
+  btn.querySelector('.btn-text').textContent = 'Checking FDA labels…';
+  const results = document.getElementById('med-results');
+  results.innerHTML = '';
+
+  try {
+    const res = await fetch(`${API_BASE}/medications/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ medications: meds.list.map(m => m.name) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Analysis failed. Please try again.');
+    renderMedAnalysis(data);
+  } catch (err) {
+    const offline = err instanceof TypeError;
+    results.innerHTML = `<div class="nutri-empty">${escapeHtml(offline
+      ? 'Cannot reach the ClearChart server. Make sure the backend is running, then try again.'
+      : err.message)}</div>`;
+  } finally {
+    meds.analyzing = false;
+    btn.disabled = meds.list.length === 0;
+    btn.querySelector('.btn-text').textContent = 'Check my medications';
+  }
+}
+
+function medSourceLink(source) {
+  if (!source) return '';
+  return `<a class="citation-url" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">Source: ${escapeHtml(source.label)}</a>`;
+}
+
+function renderMedAnalysis(data) {
+  const results = document.getElementById('med-results');
+  let html = '';
+
+  if (data.overview) {
+    html += `
+      <div class="summary-card med-block">
+        <h3 class="panel-section-title">Plain-English overview</h3>
+        <p class="summary-text">${linkifyTerms(escapeHtml(data.overview))}</p>
+        <p class="med-gloss-note">Simplified only from the label excerpts cited below — nothing added.</p>
+      </div>`;
+  }
+
+  // Interactions between the listed medications
+  if ((data.interactions || []).length) {
+    html += `<div class="summary-card med-block">
+      <h3 class="panel-section-title">Label-documented interactions</h3>
+      ${data.interactions.map(i => `
+        <div class="med-interaction">
+          <p class="med-pair">${escapeHtml(i.pair[0])} <span aria-hidden="true">↔</span> ${escapeHtml(i.pair[1])}</p>
+          <p class="med-excerpt">“${escapeHtml(i.excerpt)}”</p>
+          ${medSourceLink(i.source)}
+        </div>`).join('')}
+    </div>`;
+  } else {
+    html += `<div class="summary-card med-block">
+      <h3 class="panel-section-title">Interactions between your medications</h3>
+      <p class="summary-text">No interaction between these medications is documented in their FDA labels. That is not a guarantee none exists — your pharmacist can run a complete check.</p>
+    </div>`;
+  }
+
+  // Per-medication details
+  (data.medications || []).forEach(m => {
+    if (!m.found) {
+      html += `<div class="summary-card med-block">
+        <h3 class="panel-section-title">${escapeHtml(m.name)}</h3>
+        <p class="summary-text">No authoritative FDA label was found for “${escapeHtml(m.name)}”. Check the spelling, try the generic name, or ask your pharmacist — we only show information we can source.</p>
+      </div>`;
+      return;
+    }
+    const s = m.sections || {};
+    const row = (label, content) => content
+      ? `<div class="med-row"><span class="med-row-label">${label}</span><p class="med-row-text">${linkifyTerms(escapeHtml(Array.isArray(content) ? content.join(' ') : content))}</p></div>`
+      : '';
+    const nothing = !s.side_effects && !s.food && !s.alcohol && !s.timing && !s.monitoring;
+    html += `<div class="summary-card med-block">
+      <h3 class="panel-section-title">${escapeHtml(m.name)}${m.generic_name && m.generic_name.toLowerCase() !== m.name.toLowerCase() ? ` <span class="med-generic">(${escapeHtml(m.generic_name.toLowerCase())})</span>` : ''}</h3>
+      ${row('Common side effects', s.side_effects)}
+      ${row('Food interactions', s.food)}
+      ${row('Alcohol', s.alcohol)}
+      ${row('Timing & how to take', s.timing)}
+      ${row('Monitoring', s.monitoring)}
+      ${nothing ? '<p class="summary-text">The label was found but these sections are empty for this product.</p>' : ''}
+      ${medSourceLink(m.source)}
+    </div>`;
+  });
+
+  if (data.note) {
+    html += `<p class="med-note">${escapeHtml(data.note)}</p>`;
+  }
+  results.innerHTML = html;
+}
+
+// ── MEDICAL TERM POPOVERS ─────────────────────────────────
+// A curated plain-English glossary; report text is linkified so terms open
+// a popover on hover (desktop) or tap (mobile). Content is deliberately
+// educational and generic — the report's own explanation stays primary.
+
+const GLOSSARY = {
+  hemoglobin: { name: 'Hemoglobin', tag: 'Blood', terms: ['hemoglobin', 'haemoglobin', 'hgb'],
+    what: 'The protein in red blood cells that carries oxygen around your body.',
+    why: 'Too little means your tissues get less oxygen, which causes tiredness and shortness of breath.',
+    hilo: 'Low is the common concern (anemia). High is less common and can relate to smoking, altitude, or dehydration.',
+    causes: 'Low: iron/B12/folate deficiency, blood loss, chronic disease. High: dehydration, lung conditions.',
+    next: 'Doctors often check iron studies (ferritin), B12, and folate to find the cause.' },
+  ferritin: { name: 'Ferritin', tag: 'Iron stores', terms: ['ferritin'],
+    what: "A protein that stores iron — it's the best everyday measure of your iron reserves.",
+    why: 'Iron reserves determine whether your body can make enough healthy red blood cells.',
+    hilo: 'Low suggests iron deficiency even before anemia appears. High can reflect inflammation or iron overload.',
+    causes: 'Low: diet, blood loss, absorption problems. High: inflammation, liver conditions, hereditary iron overload.',
+    next: 'Often rechecked together with a full iron panel and CRP to rule out inflammation.' },
+  anemia: { name: 'Anemia', tag: 'Condition', terms: ['anemia', 'anaemia', 'anemic'],
+    what: 'Having fewer healthy red blood cells (or less hemoglobin) than your body needs.',
+    why: 'It reduces oxygen delivery — fatigue, pale skin, and breathlessness are typical signs.',
+    hilo: 'Anemia itself means values are low; the key question is why.',
+    causes: 'Iron, B12, or folate deficiency; blood loss; chronic kidney disease; inherited conditions.',
+    next: 'Doctors usually look for the cause with iron studies, B12/folate, and sometimes a stool test.' },
+  ldl: { name: 'LDL cholesterol', tag: 'Lipids', terms: ['ldl'],
+    what: 'The "bad" cholesterol — particles that can deposit cholesterol in artery walls.',
+    why: 'Long-term high LDL is a major, treatable driver of heart attack and stroke risk.',
+    hilo: 'High is the concern. Lower is generally better; there is no "too low" symptom for most people.',
+    causes: 'Diet high in saturated fat, genetics, low thyroid, some medications.',
+    next: 'Discussed alongside overall heart risk; options range from diet and exercise to statins.' },
+  hdl: { name: 'HDL cholesterol', tag: 'Lipids', terms: ['hdl'],
+    what: 'The "good" cholesterol — it carries cholesterol away from arteries back to the liver.',
+    why: 'Higher HDL generally tracks with lower cardiovascular risk.',
+    hilo: 'Low is the concern; high HDL is usually welcome.',
+    causes: 'Low: inactivity, smoking, metabolic syndrome, genetics.',
+    next: 'Exercise and stopping smoking are the classic HDL-raising conversation topics.' },
+  triglycerides: { name: 'Triglycerides', tag: 'Lipids', terms: ['triglyceride', 'triglycerides'],
+    what: 'The main form of fat circulating in your blood.',
+    why: 'Very high levels raise cardiovascular risk and can inflame the pancreas.',
+    hilo: 'High is the concern, especially after sugary or alcoholic intake.',
+    causes: 'Added sugars, alcohol, uncontrolled diabetes, genetics.',
+    next: 'Usually rechecked fasting; cutting sugar and alcohol is first-line.' },
+  a1c: { name: 'Hemoglobin A1c', tag: 'Blood sugar', terms: ['hba1c', 'a1c'],
+    what: 'Your average blood sugar over roughly the past three months.',
+    why: "It shows the bigger picture that a single glucose reading can't.",
+    hilo: '5.7–6.4% suggests pre-diabetes; 6.5%+ suggests diabetes. Low A1c is rarely a concern.',
+    causes: 'High: insulin resistance, diabetes. Slightly off readings can also follow anemia.',
+    next: 'Doctors discuss lifestyle changes and how often to re-test (typically every 3–6 months).' },
+  glucose: { name: 'Glucose', tag: 'Blood sugar', terms: ['glucose'],
+    what: 'The sugar your cells burn for energy, measured in your blood.',
+    why: 'Persistently high fasting glucose is how pre-diabetes and diabetes are spotted early.',
+    hilo: 'High (fasting 100–125 = pre-diabetic range) is the usual flag; low causes shakiness and sweating.',
+    causes: 'High: insulin resistance, stress, some medications. Low: skipped meals, diabetes medication.',
+    next: 'A repeat fasting test or an A1c usually confirms whether it is a pattern.' },
+  creatinine: { name: 'Creatinine', tag: 'Kidney', terms: ['creatinine'],
+    what: 'A waste product from muscles that healthy kidneys filter out of the blood.',
+    why: "It's the standard quick check of how well your kidneys are filtering.",
+    hilo: 'High suggests the kidneys are filtering less well. Low is rarely important.',
+    causes: 'High: kidney strain, dehydration, some medications, very high muscle mass.',
+    next: 'Interpreted together with eGFR; doctors may repeat it hydrated or add a urine test.' },
+  egfr: { name: 'eGFR', tag: 'Kidney', terms: ['egfr', 'glomerular filtration'],
+    what: 'Estimated filtration rate — how many millilitres of blood your kidneys clean per minute.',
+    why: 'It stages kidney function; above 60 is generally considered adequate.',
+    hilo: 'Low is the concern. There is no "too high".',
+    causes: 'Low: chronic kidney disease, diabetes, high blood pressure, dehydration on test day.',
+    next: 'If low, doctors usually recheck in weeks and look at urine protein.' },
+  ast: { name: 'AST', tag: 'Liver', terms: ['ast', 'aspartate aminotransferase'],
+    what: 'An enzyme found in the liver (and muscles) that leaks into blood when cells are stressed.',
+    why: 'Raised levels can signal liver irritation — from fat, alcohol, viruses, or medications.',
+    hilo: 'High is the concern; low is not meaningful.',
+    causes: 'Fatty liver, alcohol, viral hepatitis, some medicines, intense exercise.',
+    next: 'Usually interpreted with ALT; doctors may order an ultrasound or repeat after lifestyle changes.' },
+  alt: { name: 'ALT', tag: 'Liver', terms: ['alt', 'alanine aminotransferase'],
+    what: 'A liver enzyme — the most liver-specific of the standard panel.',
+    why: 'Persistent elevation is an early flag for fatty liver and other liver conditions.',
+    hilo: 'High is the concern; low is not meaningful.',
+    causes: 'Fatty liver, alcohol, viral hepatitis, some medications and supplements.',
+    next: 'Often rechecked after 4–8 weeks of reduced alcohol/sugar; imaging if it stays high.' },
+  neutrophils: { name: 'Neutrophils', tag: 'Immune', terms: ['neutrophil', 'neutrophils', 'neutropenia'],
+    what: 'The most numerous white blood cells — first responders against bacterial infection.',
+    why: 'They show whether your immune system is fighting something or running low.',
+    hilo: 'High often means infection or inflammation; low (neutropenia) weakens infection defence.',
+    causes: 'High: infection, stress, steroids. Low: viral illness, some medications, chemotherapy.',
+    next: 'Doctors look at the trend and the rest of the white-cell differential.' },
+  wbc: { name: 'White blood cells', tag: 'Immune', terms: ['wbc', 'white blood cell', 'leukocyte', 'leukocytes'],
+    what: 'Your immune cells as a group — the body\'s defence force.',
+    why: 'The total count rises with infection and inflammation, and falls with some illnesses and drugs.',
+    hilo: 'Both directions matter: high suggests the body is fighting; low weakens defences.',
+    causes: 'High: infection, inflammation, stress. Low: viral infections, some medications.',
+    next: 'The differential (which types are up or down) usually tells the real story.' },
+  platelets: { name: 'Platelets', tag: 'Blood', terms: ['platelet', 'platelets', 'thrombocyte'],
+    what: 'Tiny cell fragments that plug leaks — the first step of clotting.',
+    why: 'Too few means easy bruising and bleeding; far too many can promote clots.',
+    hilo: 'Both extremes matter, though mild deviations are common and often transient.',
+    causes: 'Low: viral illness, some medicines, liver/spleen conditions. High: inflammation, iron deficiency.',
+    next: 'Mild changes are usually just rechecked; the trend matters more than one value.' },
+  tsh: { name: 'TSH', tag: 'Thyroid', terms: ['tsh', 'thyroid stimulating hormone'],
+    what: "The pituitary's control signal to the thyroid — the best single thyroid screen.",
+    why: 'It moves opposite to thyroid activity: high TSH usually means an underactive thyroid.',
+    hilo: 'High TSH → underactive thyroid (fatigue, weight gain). Low TSH → overactive (palpitations, weight loss).',
+    causes: 'Autoimmune thyroid disease is the most common cause in both directions.',
+    next: 'Usually confirmed with free T4, and antibodies if autoimmune disease is suspected.' },
+  vitamind: { name: 'Vitamin D', tag: 'Vitamin', terms: ['vitamin d', '25-oh', 'calcidiol'],
+    what: 'A hormone-like vitamin your skin makes from sunlight; key for bones and muscles.',
+    why: 'Deficiency is extremely common and quietly affects bone strength and energy.',
+    hilo: 'Low is the near-universal concern; toxicity from supplements is rare but real.',
+    causes: 'Low: limited sun, darker skin at high latitudes, malabsorption.',
+    next: 'Doctors discuss dosing and when to re-test (often ~3 months).' },
+  b12: { name: 'Vitamin B12', tag: 'Vitamin', terms: ['b12', 'cobalamin'],
+    what: 'A vitamin needed for red blood cells and healthy nerves, found mostly in animal foods.',
+    why: 'Deficiency causes anemia and — if prolonged — nerve symptoms like tingling.',
+    hilo: 'Low is the concern; high usually just reflects supplements.',
+    causes: 'Low: vegetarian/vegan diet, absorption problems, long-term antacid or metformin use.',
+    next: 'Doctors ask about diet and medications, and may test absorption-related markers.' },
+  bilirubin: { name: 'Bilirubin', tag: 'Liver', terms: ['bilirubin'],
+    what: 'A yellow pigment from recycling old red blood cells, cleared by the liver.',
+    why: 'High levels cause jaundice and can point to liver or bile-duct issues.',
+    hilo: 'High is the flag; mildly high alone is often harmless Gilbert syndrome.',
+    causes: 'Gilbert syndrome, liver conditions, bile-duct blockage, rapid red-cell breakdown.',
+    next: 'Interpreted with the other liver tests; direct vs indirect fractions narrow the cause.' },
+  potassium: { name: 'Potassium', tag: 'Electrolyte', terms: ['potassium'],
+    what: 'An electrolyte critical for heart rhythm and muscle function.',
+    why: 'Both high and low levels can disturb heart rhythm — this one has a narrow safe band.',
+    hilo: 'Both directions matter and deserve a prompt conversation if flagged.',
+    causes: 'Low: diuretics, vomiting/diarrhea. High: kidney issues, some blood-pressure medications.',
+    next: 'Often rechecked promptly to rule out a sample artifact before acting.' },
+  sodium: { name: 'Sodium', tag: 'Electrolyte', terms: ['sodium', 'natremia'],
+    what: 'The main electrolyte controlling water balance in your body.',
+    why: 'Abnormal sodium usually reflects water balance, not salt intake.',
+    hilo: 'Low is more common (medications, overhydration); both extremes affect the brain.',
+    causes: 'Low: diuretics, hormonal issues, excess water. High: dehydration.',
+    next: 'Doctors review medications and fluid intake first.' },
+  calcium: { name: 'Calcium', tag: 'Electrolyte', terms: ['calcium', 'calcemia'],
+    what: 'A mineral for bones, nerves, and muscle — tightly regulated in blood.',
+    why: 'Persistent abnormalities often trace to parathyroid or vitamin D issues.',
+    hilo: 'High: often parathyroid-related. Low: vitamin D deficiency is a common cause.',
+    causes: 'High: hyperparathyroidism, some cancers. Low: vitamin D deficiency, kidney disease.',
+    next: 'Usually rechecked with albumin, vitamin D, and PTH.' },
+  uricacid: { name: 'Uric acid', tag: 'Metabolic', terms: ['uric acid', 'urate'],
+    what: 'A waste product from purines (in meat, seafood, beer) cleared by the kidneys.',
+    why: 'High levels can crystallise in joints — that is gout.',
+    hilo: 'High is the concern; low is rarely meaningful.',
+    causes: 'Diet, alcohol, kidney clearance, diuretics, genetics.',
+    next: 'Hydration and diet first; medication if gout attacks occur.' },
+  albumin: { name: 'Albumin', tag: 'Protein', terms: ['albumin'],
+    what: 'The main protein in blood, made by the liver; it holds fluid in your vessels.',
+    why: 'Low albumin can reflect liver trouble, kidney losses, inflammation, or poor nutrition.',
+    hilo: 'Low is the flag; high usually just means dehydration.',
+    causes: 'Liver disease, kidney protein loss, chronic inflammation, low intake.',
+    next: 'Interpreted with liver and kidney panels to find the source.' },
+  hyperlipidemia: { name: 'Hyperlipidemia', tag: 'Condition', terms: ['hyperlipidemia', 'hyperlipidaemia', 'dyslipidemia'],
+    what: 'The umbrella term for having too much cholesterol and/or triglycerides in the blood.',
+    why: 'It is a silent but very treatable contributor to heart attack and stroke risk.',
+    hilo: 'It describes values being high by definition.',
+    causes: 'Diet, genetics, low thyroid, diabetes, some medications.',
+    next: 'Doctors weigh overall cardiovascular risk to choose between lifestyle change and medication.' },
+  hypertension: { name: 'Hypertension', tag: 'Condition', terms: ['hypertension', 'high blood pressure'],
+    what: 'Blood pressure that stays above the healthy range (roughly 130/80 and up).',
+    why: 'Over years it quietly damages heart, brain, kidneys, and eyes — and it is very treatable.',
+    hilo: 'High is the definition; the number pair (systolic/diastolic) both matter.',
+    causes: 'Genetics, salt, weight, alcohol, sleep apnea, kidney or hormonal conditions.',
+    next: 'Home readings over a week or two usually guide the treatment conversation.' },
+  crp: { name: 'CRP', tag: 'Inflammation', terms: ['crp', 'c-reactive protein'],
+    what: 'A protein the liver releases when there is inflammation anywhere in the body.',
+    why: 'It is a sensitive but non-specific smoke detector — it says "something", not "what".',
+    hilo: 'High is the flag; the higher it is, the more active the inflammation.',
+    causes: 'Infections, autoimmune flares, injury; mildly high with obesity and smoking.',
+    next: 'Doctors pair it with symptoms and other tests to locate the source.' },
+};
+
+// One flat lookup: term (lowercase) → glossary key, longest terms first so
+// "vitamin d" wins over "d", etc.
+const _TERM_INDEX = [];
+for (const [key, entry] of Object.entries(GLOSSARY)) {
+  for (const t of entry.terms) _TERM_INDEX.push([t.toLowerCase(), key]);
+}
+_TERM_INDEX.sort((a, b) => b[0].length - a[0].length);
+const _TERM_RE = new RegExp(
+  `\\b(${_TERM_INDEX.map(([t]) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+  'gi'
+);
+
+/* Wrap known medical terms in an already-HTML-escaped string with popover
+   triggers. Call ONLY on escaped text. */
+function linkifyTerms(escapedText) {
+  let count = 0;
+  return escapedText.replace(_TERM_RE, (match) => {
+    if (count >= 12) return match;              // don't turn prose into confetti
+    const hit = _TERM_INDEX.find(([t]) => t === match.toLowerCase());
+    if (!hit) return match;
+    count++;
+    return `<button type="button" class="term" data-term="${hit[1]}">${match}</button>`;
+  });
+}
+
+let _termPop = null;
+let _termHideTimer = null;
+
+function ensureTermPopover() {
+  if (_termPop) return _termPop;
+  _termPop = document.createElement('div');
+  _termPop.id = 'term-pop';
+  _termPop.setAttribute('role', 'tooltip');
+  document.body.appendChild(_termPop);
+  _termPop.addEventListener('mouseenter', () => clearTimeout(_termHideTimer));
+  _termPop.addEventListener('mouseleave', scheduleTermHide);
+  return _termPop;
+}
+
+function showTermPopover(target) {
+  const entry = GLOSSARY[target.dataset.term];
+  if (!entry) return;
+  clearTimeout(_termHideTimer);
+  const pop = ensureTermPopover();
+
+  pop.innerHTML = `
+    <div class="tp-head">
+      <span class="tp-name">${escapeHtml(entry.name)}</span>
+      <span class="tp-tag">${escapeHtml(entry.tag)}</span>
+    </div>
+    <div class="tp-row"><span class="tp-label">What it is</span><p>${escapeHtml(entry.what)}</p></div>
+    <div class="tp-row"><span class="tp-label">Why it matters</span><p>${escapeHtml(entry.why)}</p></div>
+    <div class="tp-row"><span class="tp-label">High vs low</span><p>${escapeHtml(entry.hilo)}</p></div>
+    <div class="tp-row"><span class="tp-label">Common causes</span><p>${escapeHtml(entry.causes)}</p></div>
+    <div class="tp-row"><span class="tp-label">Often discussed next</span><p>${escapeHtml(entry.next)}</p></div>
+    <p class="tp-foot">Educational only — your report and your doctor come first.</p>`;
+
+  pop.classList.add('open');
+  const rect = target.getBoundingClientRect();
+  const popW = Math.min(330, window.innerWidth - 24);
+  pop.style.width = popW + 'px';
+  let left = rect.left + rect.width / 2 - popW / 2;
+  left = Math.max(12, Math.min(left, window.innerWidth - popW - 12));
+  pop.style.left = left + 'px';
+
+  const popH = pop.offsetHeight;
+  const below = rect.bottom + 10;
+  pop.style.top = (below + popH > window.innerHeight - 10 && rect.top - popH - 10 > 0
+    ? rect.top - popH - 10
+    : below) + window.scrollY + 'px';
+  pop.style.position = 'absolute';
+}
+
+function scheduleTermHide() {
+  clearTimeout(_termHideTimer);
+  _termHideTimer = setTimeout(() => { if (_termPop) _termPop.classList.remove('open'); }, 180);
+}
+
+document.addEventListener('mouseover', (e) => {
+  const term = e.target.closest('.term');
+  if (term) showTermPopover(term);
+});
+document.addEventListener('mouseout', (e) => {
+  if (e.target.closest('.term')) scheduleTermHide();
+});
+document.addEventListener('click', (e) => {
+  const term = e.target.closest('.term');
+  if (term) { showTermPopover(term); clearTimeout(_termHideTimer); return; }
+  if (_termPop && !e.target.closest('#term-pop')) _termPop.classList.remove('open');
+});
+document.addEventListener('focusin', (e) => {
+  const term = e.target.closest('.term');
+  if (term) showTermPopover(term);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && _termPop) _termPop.classList.remove('open');
+});
+window.addEventListener('scroll', () => { if (_termPop) _termPop.classList.remove('open'); }, { passive: true });
 
 // ── UTILITY ───────────────────────────────────────────────
 function escapeHtml(str) {

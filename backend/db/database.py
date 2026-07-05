@@ -102,11 +102,16 @@ async def create_tables():
         from db import models  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
-    # Minimal forward migration: create_all never ALTERs existing tables,
-    # so add columns introduced after the first release here.
+    # Minimal forward migrations: create_all never ALTERs existing tables,
+    # so add columns introduced after the first release here. Each ALTER gets
+    # its own transaction — on Postgres a failed statement poisons the tx.
     from sqlalchemy import text
-    async with engine.begin() as conn:
+    for ddl in (
+        "ALTER TABLE jobs ADD COLUMN user_id VARCHAR(36)",
+        "ALTER TABLE jobs ADD COLUMN profile_id VARCHAR(36)",
+    ):
         try:
-            await conn.execute(text("ALTER TABLE jobs ADD COLUMN user_id VARCHAR(36)"))
+            async with engine.begin() as conn:
+                await conn.execute(text(ddl))
         except Exception:
             pass  # column already exists

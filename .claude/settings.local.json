@@ -6,7 +6,8 @@
       "Bash(python -m http.server 8899)",
       "Skill(dataviz)",
       "Bash(./.venv/Scripts/python.exe -c \"import main\")",
-      "Bash(./.venv/Scripts/python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000)"
+      "Bash(./.venv/Scripts/python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000)",
+      "Bash(./.venv/Scripts/python.exe -c \"import main; print\\('backend imports OK'\\)\")"
     ]
   }
 }

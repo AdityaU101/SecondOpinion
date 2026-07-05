@@ -49,6 +49,51 @@ class User(Base):
     created_at    = Column(DateTime(timezone=True), default=_now, nullable=False)
 
 
+class Profile(Base):
+    """
+    A health profile under one account — "Me", "Mother", "Child", …
+
+    Reports, medications, timelines, and chat context are all scoped to a
+    profile. Every user gets a default profile on first access; legacy jobs
+    created before profiles existed (profile_id IS NULL) are shown under it,
+    which keeps old accounts working unchanged.
+    """
+    __tablename__ = "profiles"
+
+    id         = Column(String(36), primary_key=True, default=_uuid)
+    user_id    = Column(String(36), nullable=False, index=True)
+    name       = Column(String(80), nullable=False)
+    relation   = Column(String(40), nullable=False, default="Self")   # Self | Mother | Father | Child | ...
+    is_default = Column(Integer, nullable=False, default=0)           # 1 for the auto-created profile
+    created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "relation": self.relation,
+            "is_default": bool(self.is_default),
+        }
+
+
+class Medication(Base):
+    """
+    A medication on a profile's review list. Only the name is stored —
+    all interaction/label information is retrieved live from authoritative
+    sources (openFDA / DailyMed) at analysis time, never persisted.
+    """
+    __tablename__ = "medications"
+
+    id         = Column(String(36), primary_key=True, default=_uuid)
+    user_id    = Column(String(36), nullable=False, index=True)
+    profile_id = Column(String(36), nullable=False, index=True)
+    name       = Column(String(120), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "name": self.name, "profile_id": self.profile_id}
+
+
 class Job(Base):
     """
     Represents one analysis job.
@@ -68,7 +113,10 @@ class Job(Base):
     # ── Ownership ─────────────────────────────────────────
     # Set when the request carried a valid auth token; null for guests.
     # Powers the "My reports" history + trends feature.
-    user_id  = Column(String(36), nullable=True, index=True)
+    user_id    = Column(String(36), nullable=True, index=True)
+    # Which family profile this report belongs to. Null = created before
+    # profiles existed → attributed to the user's default profile.
+    profile_id = Column(String(36), nullable=True, index=True)
 
     # ── Input metadata ────────────────────────────────────
     source_name   = Column(String(255), nullable=True)   # filename or "pasted-text"

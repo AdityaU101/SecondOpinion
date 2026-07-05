@@ -2269,6 +2269,393 @@ main { flex: 1; }
   line-height: 1.45;
 }
 
+/* ── PROFILE SWITCHER ────────────────────────────────────── */
+.profile-wrap { position: relative; }
+
+.profile-btn {
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.profile-btn:hover { border-color: rgba(14,124,107,0.4); box-shadow: var(--shadow-sm); }
+
+.chip-chevron { color: var(--gray-400); margin-right: 4px; transition: transform var(--t-med) var(--ease-out); }
+.profile-btn[aria-expanded="true"] .chip-chevron { transform: rotate(180deg); }
+
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  width: 250px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 10px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity 0.18s var(--ease-out), transform 0.22s var(--ease-out);
+}
+.profile-menu.open { opacity: 1; transform: none; pointer-events: auto; }
+
+.pm-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gray-400);
+  padding: 4px 8px 6px;
+}
+
+.pm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  padding: 7px 8px;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--gray-700);
+  text-align: left;
+  transition: background var(--t-fast) ease;
+}
+.pm-item:hover { background: var(--teal-bg); }
+.pm-item.active { background: var(--teal-bg); }
+.pm-item.active svg { color: var(--accent-text); flex-shrink: 0; }
+.pm-item .chip-avatar { width: 26px; height: 26px; font-size: 10px; flex-shrink: 0; }
+
+.pm-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pm-item-name {
+  font-size: 13px; font-weight: 600; color: var(--gray-800);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pm-item-rel { font-size: 11px; color: var(--gray-400); }
+
+.pm-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 1px dashed var(--gray-300);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+  cursor: pointer;
+  transition: border-color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.pm-add:hover { border-color: var(--teal); background: var(--teal-bg); }
+
+.pm-add-form { display: none; flex-direction: column; gap: 6px; padding: 6px 2px 2px; }
+.pm-add-form.open { display: flex; animation: panel-in 0.22s var(--ease-out); }
+.pm-add-form input, .pm-add-form select {
+  width: 100%;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  background: var(--card-soft);
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gray-800);
+  outline: none;
+}
+.pm-add-form input:focus, .pm-add-form select:focus { border-color: var(--teal); }
+.pm-add-form .btn-outline-sm { justify-content: center; }
+
+.pm-divider { height: 1px; background: var(--hairline); margin: 8px 2px; }
+
+.pm-account {
+  font-size: 11px;
+  color: var(--gray-400);
+  padding: 0 8px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-signout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  padding: 7px 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.pm-signout:hover { color: var(--red); background: var(--red-bg); }
+
+/* ── MEDICATION REVIEW ───────────────────────────────────── */
+.meds-sub {
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+.med-input-row { display: flex; gap: 8px; margin-bottom: 14px; }
+
+.med-input-wrap { position: relative; flex: 1; }
+
+.med-input-wrap input {
+  width: 100%;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: var(--card-soft);
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--gray-800);
+  outline: none;
+  transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.med-input-wrap input:focus { border-color: var(--teal); box-shadow: var(--glow); }
+
+.med-suggest {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0; right: 0;
+  z-index: 50;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: none;
+}
+.med-suggest.open { display: block; animation: panel-in 0.18s var(--ease-out); }
+.med-suggest button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--gray-700);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast) ease;
+}
+.med-suggest button:hover { background: var(--teal-bg); color: var(--accent-text); }
+
+.med-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+.med-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--teal-bg);
+  border: 1px solid rgba(14,124,107,0.22);
+  color: var(--gray-700);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 8px 6px 12px;
+  border-radius: 100px;
+  animation: pop-in 0.25s var(--ease-pop) both;
+}
+.med-chip > svg { color: var(--accent-text); }
+.med-chip button {
+  display: inline-flex;
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 50%;
+  transition: color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.med-chip button:hover { color: var(--red); background: rgba(220,38,38,0.1); }
+
+.med-block { animation: rise 0.45s var(--ease-out) both; }
+
+.med-generic { font-weight: 500; color: var(--gray-400); text-transform: none; letter-spacing: 0; }
+
+.med-row { margin-bottom: 14px; }
+.med-row:last-of-type { margin-bottom: 10px; }
+
+.med-row-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 3px;
+}
+
+.med-row-text {
+  font-size: 13.5px;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+.med-interaction {
+  border-left: 3px solid var(--amber);
+  background: var(--amber-bg);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.med-interaction:last-of-type { margin-bottom: 0; }
+
+.med-pair {
+  font-family: var(--display);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.med-excerpt {
+  font-size: 13px;
+  color: var(--gray-600);
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+.med-gloss-note, .med-note {
+  font-size: 11.5px;
+  color: var(--gray-400);
+  margin-top: 10px;
+  line-height: 1.55;
+}
+.med-note { text-align: center; margin: 4px 0 16px; }
+
+/* ── MEDICAL TERM POPOVERS ───────────────────────────────── */
+.term {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: help;
+  border-bottom: 1.5px dotted var(--teal);
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.term:hover, .term:focus-visible {
+  color: var(--accent-text);
+  background: var(--teal-bg);
+  border-bottom-style: solid;
+}
+
+#term-pop {
+  position: absolute;
+  z-index: 700;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px 16px 10px;
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.16s var(--ease-out), transform 0.2s var(--ease-out);
+}
+#term-pop.open { opacity: 1; transform: none; pointer-events: auto; }
+
+.tp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.tp-name {
+  font-family: var(--display);
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.tp-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-text);
+  background: var(--teal-bg);
+  border: 1px solid rgba(14,124,107,0.18);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.tp-row { margin-bottom: 8px; }
+.tp-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-400);
+  margin-bottom: 1px;
+}
+.tp-row p {
+  font-size: 12.5px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.tp-foot {
+  font-size: 10.5px;
+  color: var(--gray-400);
+  border-top: 1px solid var(--hairline);
+  padding-top: 7px;
+  margin-top: 4px;
+}
+
+/* ── TRENDS SUMMARY ──────────────────────────────────────── */
+.trends-summary {
+  background: var(--teal-bg);
+  border: 1px solid rgba(14,124,107,0.16);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+.trends-summary p {
+  font-size: 13.5px;
+  color: var(--gray-700);
+  line-height: 1.65;
+}
+.trends-summary p + p { margin-top: 6px; }
+.trends-summary strong { color: var(--ink); }
+
+.trend-pct {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  padding: 1px 7px;
+  border-radius: 100px;
+}
+
+.trend-range { color: var(--gray-500); }
+
 /* ── HISTORY & TRENDS ────────────────────────────────────── */
 .history-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 
@@ -2596,10 +2983,13 @@ main { flex: 1; }
   .snapshot-intro { text-align: left; }
   .nav { gap: 2px; }
   .nav-link { padding: 6px 9px; font-size: 13px; }
-  .nav-link:not(.nav-link-accent):not(.nav-cta):not(#nav-history) { display: none; }
+  .nav-link:not(.nav-link-accent):not(.nav-cta):not(#nav-history):not(#nav-meds) { display: none; }
   /* the BMI card is one scroll away on the app page — the shortcut can go */
   .nav-link-accent { display: none; }
+  /* icon-only logo frees room for the profile switcher + section links */
+  .logo-text { display: none; }
   .header-inner { padding: 0 16px; }
+  .profile-menu { right: -8px; }
   .chip-name { display: none; }
   .cta-band-inner { padding: 36px 22px; }
 
