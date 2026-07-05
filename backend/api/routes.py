@@ -20,18 +20,19 @@ ENDPOINTS:
 from __future__ import annotations
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.auth import decode_token, get_current_user
 from api.schemas import (
     JobCreatedResponse,
     JobStatusResponse,
     TextAnalysisRequest,
 )
 from db.database import get_db
-from db.models import Job
+from db.models import Job, User
 from storage import save_upload
 from taskqueue import enqueue_analysis
 from pipeline import run_pipeline
@@ -44,6 +45,20 @@ MAX_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
 # ── DB HELPERS ────────────────────────────────────────────
+
+async def _optional_user_id(authorization: str, db: AsyncSession) -> str | None:
+    """Resolve a Bearer token to a user id, or None for guests/invalid tokens.
+    Analysis stays open to guests; ownership is a bonus, never a gate."""
+    token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        return None
+    email = decode_token(token)
+    if not email:
+        return None
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    return user.id if user else None
+
 
 async def _get_job(job_id: str, db: AsyncSession) -> Job:
     result = await db.execute(select(Job).where(Job.job_id == job_id))
@@ -75,6 +90,7 @@ async def _dispatch(
 async def analyze_upload(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    authorization: str = Header(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     """Accept a PDF or image → save to shared storage → enqueue analysis."""
@@ -95,6 +111,7 @@ async def analyze_upload(
         progress=0,
         source_name=file.filename,
         input_type="file",
+        user_id=await _optional_user_id(authorization, db),
     )
     db.add(job)
     await db.commit()
@@ -117,6 +134,7 @@ async def analyze_upload(
 async def analyze_text(
     background_tasks: BackgroundTasks,
     body: TextAnalysisRequest,
+    authorization: str = Header(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     """Accept raw medical text → enqueue analysis."""
@@ -127,6 +145,7 @@ async def analyze_text(
         progress=0,
         source_name="pasted-text",
         input_type="text",
+        user_id=await _optional_user_id(authorization, db),
     )
     db.add(job)
     await db.commit()
@@ -138,6 +157,50 @@ async def analyze_text(
         status="pending",
         message=f"Analysis started. Poll /api/v1/jobs/{job_id} for updates.",
     )
+
+
+@router.get("/reports")
+async def list_reports(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    The signed-in user's completed analyses, newest first.
+    Returns a compact shape: enough for the history list AND the per-parameter
+    trend charts (numeric values + reference ranges), without re-fetching
+    every full report.
+    """
+    result = await db.execute(
+        select(Job)
+        .where(Job.user_id == user.id, Job.status == "completed")
+        .order_by(Job.created_at.desc())
+        .limit(50)
+    )
+    jobs = result.scalars().all()
+
+    reports = []
+    for j in jobs:
+        r = j.result or {}
+        reports.append({
+            "job_id": j.job_id,
+            "created_at": j.created_at.isoformat() if j.created_at else None,
+            "source_name": j.source_name,
+            "urgency": r.get("urgency"),
+            "summary": (r.get("summary") or "")[:280],
+            "findings": [
+                {
+                    "parameter": f.get("parameter"),
+                    "value": f.get("value"),
+                    "numeric_value": f.get("numeric_value"),
+                    "unit": f.get("unit"),
+                    "status": f.get("status"),
+                    "ref_low": f.get("ref_low"),
+                    "ref_high": f.get("ref_high"),
+                }
+                for f in (r.get("findings") or [])
+            ],
+        })
+    return {"reports": reports}
 
 
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse)

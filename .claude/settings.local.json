@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python -c \"import fastapi, anthropic, arq, sqlalchemy, pydantic_settings\")",
       "Bash(echo \"exit: $?\")",
-      "Bash(python -m http.server 8899)"
+      "Bash(python -m http.server 8899)",
+      "Skill(dataviz)",
+      "Bash(./.venv/Scripts/python.exe -c \"import main\")",
+      "Bash(./.venv/Scripts/python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000)"
     ]
   }
 }

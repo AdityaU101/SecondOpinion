@@ -65,6 +65,11 @@ class Job(Base):
     status   = Column(String(20), nullable=False, default="pending", index=True)
     progress = Column(Integer, nullable=False, default=0)   # 0–100
 
+    # ── Ownership ─────────────────────────────────────────
+    # Set when the request carried a valid auth token; null for guests.
+    # Powers the "My reports" history + trends feature.
+    user_id  = Column(String(36), nullable=True, index=True)
+
     # ── Input metadata ────────────────────────────────────
     source_name   = Column(String(255), nullable=True)   # filename or "pasted-text"
     file_path     = Column(String(512), nullable=True)   # local path to uploaded file

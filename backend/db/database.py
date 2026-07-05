@@ -101,3 +101,12 @@ async def create_tables():
         # Import models here so Base knows about them
         from db import models  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
+
+    # Minimal forward migration: create_all never ALTERs existing tables,
+    # so add columns introduced after the first release here.
+    from sqlalchemy import text
+    async with engine.begin() as conn:
+        try:
+            await conn.execute(text("ALTER TABLE jobs ADD COLUMN user_id VARCHAR(36)"))
+        except Exception:
+            pass  # column already exists

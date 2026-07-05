@@ -153,6 +153,7 @@ async function uploadFile(file) {
 
   const res = await fetch(`${API_BASE}/analyze/upload`, {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   });
 
@@ -171,7 +172,7 @@ async function submitText(text) {
 
   const res = await fetch(`${API_BASE}/analyze/text`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ text }),
   });
 
@@ -218,6 +219,7 @@ function pollJobStatus(jobId) {
 
       if (job.status === 'completed' && job.result) {
         stop();
+        recordHistory(jobId, job.result);
         showResults(job.result);
       } else if (job.status === 'failed') {
         stop();
@@ -753,6 +755,290 @@ const MOCK_REPORT = {
   disclaimer: 'This report is for health literacy purposes only. It is not a medical diagnosis, clinical opinion, or professional advice. Always consult a qualified, licensed healthcare professional before making any decisions about your health.',
   confidence_score: 0.87,
 };
+
+// ── AUTH HEADER HELPER ────────────────────────────────────
+function authHeaders() {
+  return session && session.token ? { Authorization: `Bearer ${session.token}` } : {};
+}
+
+// ── REPORT HISTORY ────────────────────────────────────────
+// Signed-in users: history lives server-side (jobs.user_id → /reports).
+// Guests: a device-local copy in localStorage, capped at 20 entries.
+
+const LOCAL_HISTORY_KEY = 'clearchart-history';
+
+function recordHistory(jobId, report) {
+  if (session && session.token) return;   // server already owns it
+  try {
+    const entries = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
+    entries.unshift({ job_id: jobId, created_at: new Date().toISOString(), report });
+    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(entries.slice(0, 20)));
+  } catch (e) { console.warn('Could not save local history:', e); }
+}
+
+async function loadHistoryEntries() {
+  if (session && session.token) {
+    const res = await fetch(`${API_BASE}/reports`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Could not load your reports.');
+    const data = await res.json();
+    return (data.reports || []).map(r => ({
+      job_id: r.job_id,
+      created_at: r.created_at,
+      urgency: r.urgency,
+      summary: r.summary,
+      findings: r.findings || [],
+      report: null,                        // fetched on open via /jobs/{id}
+    }));
+  }
+  // Guest: local entries carry the full report
+  const entries = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
+  return entries.map(e => ({
+    job_id: e.job_id,
+    created_at: e.created_at,
+    urgency: e.report?.urgency,
+    summary: e.report?.summary || '',
+    findings: e.report?.findings || [],
+    report: e.report,
+  }));
+}
+
+async function showHistory(e) {
+  if (e) e.preventDefault();
+  showView('history-view');
+
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+  const trendsCard = document.getElementById('trends-card');
+  list.innerHTML = '<div class="nutri-empty">Loading your reports…</div>';
+  empty.style.display = 'none';
+  trendsCard.style.display = 'none';
+
+  let entries = [];
+  try {
+    entries = await loadHistoryEntries();
+  } catch (err) {
+    list.innerHTML = '';
+    empty.textContent = err.message || 'Could not load your reports.';
+    empty.style.display = '';
+    return;
+  }
+
+  list.innerHTML = '';
+  if (entries.length === 0) {
+    empty.style.display = '';
+    return;
+  }
+
+  renderTrends(entries);
+  entries.forEach((entry, i) => {
+    list.appendChild(buildHistoryCard(entry, i));
+  });
+}
+
+function formatReportDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    + ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function buildHistoryCard(entry, index) {
+  const div = document.createElement('div');
+  div.className = 'history-card';
+  div.style.animationDelay = `${Math.min(index * 0.06, 0.4)}s`;
+
+  const urgency = entry.urgency || 'routine';
+  const urgencyText = { urgent: 'Needs attention', watch: 'Worth discussing', routine: 'All routine' }[urgency] || '';
+  const abnormal = (entry.findings || []).filter(f => (f.status || '').toLowerCase() !== 'normal').length;
+
+  div.innerHTML = `
+    <div class="history-top">
+      <span class="history-date">${escapeHtml(formatReportDate(entry.created_at))}</span>
+      <span class="history-urgency ${urgency}">${urgencyText}</span>
+    </div>
+    <p class="history-summary">${escapeHtml((entry.summary || '').slice(0, 180))}${(entry.summary || '').length > 180 ? '…' : ''}</p>
+    <div class="history-foot">
+      <span class="history-count">${entry.findings.length} values · ${abnormal} flagged</span>
+      <button class="btn-outline-sm">Open report
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>`;
+
+  div.querySelector('button').addEventListener('click', () => openHistoryReport(entry));
+  return div;
+}
+
+async function openHistoryReport(entry) {
+  state.currentJobId = entry.job_id;
+  if (entry.report) {
+    showResults(entry.report);
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/jobs/${entry.job_id}`);
+    if (!res.ok) throw new Error();
+    const job = await res.json();
+    if (job.result) { showResults(job.result); return; }
+    throw new Error();
+  } catch {
+    showToast('Could not open that report. It may have been cleaned up on the server.', 'error');
+  }
+}
+
+// ── TRENDS (per-parameter sparklines) ─────────────────────
+// Small multiples: one sparkline per lab value that appears in ≥2 reports.
+// Single series each → brand teal line, healthy-range band, no legend needed.
+
+function normalizeParam(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function renderTrends(entries) {
+  const card = document.getElementById('trends-card');
+  const grid = document.getElementById('trends-grid');
+
+  // Group numeric findings by parameter across reports (oldest → newest)
+  const byParam = new Map();
+  [...entries].reverse().forEach(entry => {
+    (entry.findings || []).forEach(f => {
+      if (f.numeric_value === null || f.numeric_value === undefined) return;
+      const key = normalizeParam(f.parameter);
+      if (!key) return;
+      if (!byParam.has(key)) byParam.set(key, { name: f.parameter, unit: f.unit, points: [] });
+      byParam.get(key).points.push({
+        date: entry.created_at,
+        value: f.numeric_value,
+        status: f.status,
+        ref_low: f.ref_low,
+        ref_high: f.ref_high,
+      });
+    });
+  });
+
+  const series = [...byParam.values()].filter(s => s.points.length >= 2).slice(0, 8);
+  if (series.length === 0) { card.style.display = 'none'; return; }
+
+  card.style.display = '';
+  grid.innerHTML = '';
+  series.forEach((s, i) => grid.appendChild(buildTrendCard(s, i)));
+}
+
+function buildTrendCard(series, index) {
+  const div = document.createElement('div');
+  div.className = 'trend-card';
+  div.style.animationDelay = `${index * 0.07}s`;
+
+  const pts = series.points;
+  const latest = pts[pts.length - 1];
+  const previous = pts[pts.length - 2];
+  const delta = latest.value - previous.value;
+  const deltaText = delta === 0 ? 'no change'
+    : `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta))} since last report`;
+  const latestStatus = (latest.status || '').toLowerCase();
+  const statusClass = { high: 'chip-high', low: 'chip-low', abnormal: 'chip-abnormal', normal: 'chip-normal' }[latestStatus] || 'chip-normal';
+
+  div.innerHTML = `
+    <div class="trend-top">
+      <span class="trend-name">${escapeHtml(series.name)}</span>
+      <span class="status-chip ${statusClass}">${escapeHtml((latest.status || '').toUpperCase())}</span>
+    </div>
+    <div class="trend-readout">
+      <span class="trend-value">${fmt(latest.value)}${series.unit ? ' ' + escapeHtml(series.unit) : ''}</span>
+      <span class="trend-delta">${escapeHtml(deltaText)}</span>
+    </div>
+    ${buildSparklineSVG(pts)}
+    <div class="trend-dates">
+      <span>${escapeHtml(shortDate(pts[0].date))}</span>
+      <span>${escapeHtml(shortDate(latest.date))}</span>
+    </div>`;
+  return div;
+}
+
+function shortDate(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+function buildSparklineSVG(pts) {
+  const W = 260, H = 64, PAD = 8;
+
+  // y-domain: values plus the healthy band, padded so nothing kisses the edge
+  const refLow = pts.find(p => p.ref_low !== null && p.ref_low !== undefined)?.ref_low;
+  const refHigh = pts.find(p => p.ref_high !== null && p.ref_high !== undefined && p.ref_high < 9000)?.ref_high;
+  const values = pts.map(p => p.value);
+  let lo = Math.min(...values, refLow ?? Infinity);
+  let hi = Math.max(...values, refHigh ?? -Infinity);
+  if (!isFinite(lo)) lo = Math.min(...values);
+  if (!isFinite(hi)) hi = Math.max(...values);
+  const span = (hi - lo) || Math.abs(hi) || 1;
+  lo -= span * 0.15; hi += span * 0.15;
+
+  const x = i => PAD + (i / Math.max(pts.length - 1, 1)) * (W - PAD * 2);
+  const y = v => H - PAD - ((v - lo) / (hi - lo)) * (H - PAD * 2);
+
+  // Healthy-range band (neutral green tint, behind the line)
+  let band = '';
+  if (refLow !== undefined || refHigh !== undefined) {
+    const top = y(refHigh !== undefined ? refHigh : hi);
+    const bottom = y(refLow !== undefined ? refLow : lo);
+    band = `<rect x="${PAD}" y="${top.toFixed(1)}" width="${W - PAD * 2}" height="${Math.max(bottom - top, 2).toFixed(1)}" rx="2" class="spark-band"/>`;
+  }
+
+  const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(' ');
+
+  // Points: small dots, larger invisible hit targets with native tooltips
+  const dots = pts.map((p, i) => {
+    const isLast = i === pts.length - 1;
+    return `
+      <circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="${isLast ? 4 : 2.5}" class="spark-dot${isLast ? ' last' : ''}"/>
+      <circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="10" fill="transparent">
+        <title>${escapeHtml(shortDate(p.date))}: ${fmt(p.value)}</title>
+      </circle>`;
+  }).join('');
+
+  return `
+    <svg class="sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Trend chart">
+      ${band}
+      <path d="${path}" class="spark-line"/>
+      ${dots}
+    </svg>`;
+}
+
+// ── APPOINTMENT PREP ──────────────────────────────────────
+const SEVERITY_ORDER = { critical: 0, moderate: 1, mild: 2, normal: 3 };
+
+function openPrep() {
+  const r = state.lastReport;
+  if (!r) { showToast('Run an analysis first — the prep sheet is built from your report.', 'error'); return; }
+
+  document.getElementById('prep-name').textContent = session && !session.guest ? session.name : '';
+  document.getElementById('prep-date').textContent = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Top findings: worst severity first, max 5, skip normals unless nothing else
+  const findings = [...(r.findings || [])]
+    .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
+  const flagged = findings.filter(f => (f.status || '').toLowerCase() !== 'normal');
+  const top = (flagged.length ? flagged : findings).slice(0, 5);
+
+  const fl = document.getElementById('prep-findings');
+  fl.innerHTML = '';
+  top.forEach(f => {
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${escapeHtml(f.parameter)}:</strong> ${escapeHtml(f.value)}${f.reference_range ? ` <span class="prep-ref">(healthy: ${escapeHtml(f.reference_range)})</span>` : ''}`;
+    fl.appendChild(li);
+  });
+
+  const ql = document.getElementById('prep-questions');
+  ql.innerHTML = '';
+  (r.questions_for_doctor || []).forEach(q => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="prep-check" aria-hidden="true"></span><span>${escapeHtml(q.question)}</span>`;
+    ql.appendChild(li);
+  });
+
+  showView('prep-view');
+}
 
 // ── NUTRITION GUIDANCE ────────────────────────────────────
 // Maps a finding (parameter keywords + high/low direction) to everyday foods
