@@ -6,7 +6,8 @@ frontend has a completed report, it sends a trimmed context string so answers
 can reference the patient's actual findings. Hard rules live in the system
 prompt: no diagnosis, no treatment plans, always defer to clinicians.
 
-If no Groq key is configured, a graceful canned response keeps the demo alive.
+Completions go through the multi-provider fallback chain (llm.py). If no
+provider is configured, a graceful canned response keeps the demo alive.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from config import settings
+from llm import chat_completion, llm_available
 
 log = logging.getLogger("clearchart.chat")
 
@@ -56,7 +57,7 @@ class ChatResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest):
-    if not settings.groq_api_key:
+    if not llm_available():
         return ChatResponse(reply=_FALLBACK_REPLY)
 
     system = _SYSTEM_PROMPT
@@ -69,11 +70,7 @@ async def chat(body: ChatRequest):
     messages.append({"role": "user", "content": body.message})
 
     try:
-        from groq import AsyncGroq
-
-        client = AsyncGroq(api_key=settings.groq_api_key)
-        response = await client.chat.completions.create(
-            model=settings.llm_model,
+        response = await chat_completion(
             messages=messages,
             max_tokens=500,
             temperature=0.4,

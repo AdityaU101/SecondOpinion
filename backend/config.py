@@ -19,11 +19,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # ── LLM (Groq) ────────────────────────────────────────
-    groq_api_key: str = ""                            # required for real analysis
+    # ── LLM (Groq primary + fallback chain) ───────────────
+    groq_api_key: str = ""                            # primary provider
     llm_model: str = "llama-3.3-70b-versatile"        # Groq synthesis model
     llm_max_tokens: int = 3000
     llm_temperature: float = 0.3                      # low-ish = factual but descriptive
+    # Fallback provider: used automatically when Groq is rate-limited or down.
+    # Same Llama family as the primary so tone/function-calling stay consistent.
+    openrouter_api_key: str = ""
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct"
 
     # ── Embeddings (local sentence-transformers) ──────────
     # "local"  → all-MiniLM-L6-v2 vectors feed the FAISS index (hybrid RAG)

@@ -245,6 +245,10 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 Prep for appointment
               </button>
+              <button class="btn-outline-sm" onclick="openPacket('results-view')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+                Visit packet
+              </button>
               <button class="btn-outline-sm" onclick="exportPDF()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export PDF
@@ -260,6 +264,9 @@
             <span class="urgency-dot" id="urgency-dot"></span>
             <span id="urgency-label"></span>
           </div>
+
+          <!-- What changed since the last report (deterministic, computed server-side) -->
+          <div class="changes-strip" id="changes-strip" style="display:none"></div>
         </div>
 
         <div class="result-tab-row" role="tablist">
@@ -270,6 +277,10 @@
           </button>
           <button class="result-tab" role="tab" data-rtab="nutrition" onclick="switchResultTab('nutrition')">Nutrition</button>
           <button class="result-tab" role="tab" data-rtab="questions" onclick="switchResultTab('questions')">Doctor questions</button>
+          <button class="result-tab" role="tab" data-rtab="followups" onclick="switchResultTab('followups')">
+            Follow-ups
+            <span class="finding-badge" id="followup-badge" style="display:none">0</span>
+          </button>
           <button class="result-tab" role="tab" data-rtab="citations" onclick="switchResultTab('citations')">Sources</button>
         </div>
 
@@ -325,6 +336,16 @@
           <ol id="questions-list" class="questions-list"></ol>
         </div>
 
+        <!-- Follow-ups panel -->
+        <div id="rtab-followups" class="result-panel">
+          <p class="questions-intro">Guideline-backed follow-up steps generated from this report's flagged values. Tick items off as you handle them — your progress is saved.</p>
+          <div id="followups-list" class="followups-list"></div>
+          <div class="nutri-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>These are conversation starters for your doctor, generated from standard guidelines — not medical orders. Timing and testing decisions belong to your clinician.</span>
+          </div>
+        </div>
+
         <!-- Citations panel -->
         <div id="rtab-citations" class="result-panel">
           <p class="citations-intro">ClearChart grounds every finding in authoritative clinical sources. These are the guidelines referenced in your report.</p>
@@ -346,6 +367,10 @@
           <div class="results-title-row">
             <h2 class="results-title">My reports</h2>
             <div class="results-actions">
+              <button class="btn-outline-sm" id="compare-toggle" onclick="toggleCompareMode()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>
+                Compare two reports
+              </button>
               <button class="btn-outline-sm" onclick="showView('upload-view')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 New analysis
@@ -354,12 +379,28 @@
           </div>
         </div>
 
+        <!-- Pending follow-ups across this profile's reports -->
+        <div class="summary-card" id="pending-recs-card" style="display:none">
+          <h3 class="panel-section-title">Pending follow-ups</h3>
+          <p class="trends-desc">Open items from this profile's reports. Tick them off as you handle them.</p>
+          <div id="pending-recs-list" class="followups-list"></div>
+        </div>
+
         <!-- Trends -->
         <div class="summary-card" id="trends-card" style="display:none">
           <h3 class="panel-section-title">Trends across your reports</h3>
           <p class="trends-desc">Values that appear in two or more reports, charted over time. The tinted band is the healthy range.</p>
           <div class="trends-summary" id="trends-summary" style="display:none"></div>
           <div class="trends-grid" id="trends-grid"></div>
+        </div>
+
+        <!-- Compare selection bar (shown in compare mode) -->
+        <div class="compare-bar" id="compare-bar" style="display:none">
+          <span id="compare-bar-text">Select two reports to compare.</span>
+          <div class="compare-bar-actions">
+            <button class="btn-primary btn-primary-sm" id="compare-run-btn" disabled onclick="runCompare()">Compare</button>
+            <button class="btn-outline-sm" onclick="toggleCompareMode()">Cancel</button>
+          </div>
         </div>
 
         <!-- Report list -->
@@ -425,6 +466,130 @@
       </div>
     </section>
 
+    <!-- STATE 4b: REPORT COMPARISON ──────────────────────────── -->
+    <section id="compare-view" class="view">
+      <div class="results-container">
+        <div class="results-header">
+          <div class="results-title-row">
+            <h2 class="results-title">Report comparison</h2>
+            <div class="results-actions">
+              <button class="btn-outline-sm" onclick="showHistory()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back to my reports
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- The two reports being compared -->
+        <div class="cv-heads" id="cv-heads"></div>
+
+        <!-- Plain-English summary of the computed diff -->
+        <div class="summary-card">
+          <h3 class="panel-section-title">What changed, in plain English</h3>
+          <p class="summary-text" id="cv-summary"></p>
+          <p class="pk-note-src" id="cv-summary-src"></p>
+        </div>
+
+        <!-- Computed buckets -->
+        <div id="cv-buckets"></div>
+
+        <div class="results-disclaimer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="cv-disclaimer">Comparisons are computed from your stored report values for health literacy only — not medical advice. Discuss changes with your doctor.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATE 5b: DOCTOR VISIT PACKET ────────────────────────── -->
+    <section id="packet-view" class="view">
+      <div class="results-container">
+        <div class="results-header screen-only">
+          <div class="results-title-row">
+            <h2 class="results-title">Doctor visit packet</h2>
+            <div class="results-actions">
+              <button class="btn-outline-sm" onclick="window.print()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print / Save PDF
+              </button>
+              <button class="btn-outline-sm" onclick="downloadPacketPDF()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download PDF
+              </button>
+              <button class="btn-outline-sm" onclick="packetBack()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="prep-sheet packet-sheet" id="packet-sheet">
+          <div class="prep-head">
+            <div>
+              <p class="prep-brand">ClearChart · Doctor visit packet</p>
+              <h3 class="prep-title">My appointment packet</h3>
+            </div>
+            <div class="prep-meta">
+              <span id="packet-name"></span>
+              <span id="packet-date"></span>
+            </div>
+          </div>
+
+          <div class="prep-section">
+            <h4 class="prep-section-title">Why I'm here</h4>
+            <p class="pk-note" id="packet-note"></p>
+            <p class="pk-note-src" id="packet-note-src"></p>
+          </div>
+
+          <div class="prep-section">
+            <h4 class="prep-section-title">Values to discuss first</h4>
+            <ul class="prep-findings" id="packet-findings"></ul>
+          </div>
+
+          <div class="prep-section" id="packet-wellness-section">
+            <h4 class="prep-section-title">Wellness by body system</h4>
+            <div class="pk-wellness" id="packet-wellness"></div>
+          </div>
+
+          <div class="prep-section" id="packet-timeline-section">
+            <h4 class="prep-section-title">How my values have moved</h4>
+            <ul class="prep-findings" id="packet-timeline"></ul>
+          </div>
+
+          <div class="prep-section">
+            <h4 class="prep-section-title">Current medications</h4>
+            <div class="pk-meds" id="packet-meds"></div>
+          </div>
+
+          <div class="prep-section">
+            <h4 class="prep-section-title">Questions to ask</h4>
+            <ol class="prep-questions" id="packet-questions"></ol>
+          </div>
+
+          <div class="prep-section">
+            <h4 class="prep-section-title">Follow-up checklist</h4>
+            <ol class="prep-questions" id="packet-checklist"></ol>
+          </div>
+
+          <div class="prep-section" id="packet-citations-section">
+            <h4 class="prep-section-title">Clinical sources</h4>
+            <div class="pk-citations" id="packet-citations"></div>
+          </div>
+
+          <div class="prep-section">
+            <h4 class="prep-section-title">Physician notes</h4>
+            <div class="prep-notes" aria-hidden="true">
+              <div class="prep-line"></div><div class="prep-line"></div><div class="prep-line"></div>
+              <div class="prep-line"></div><div class="prep-line"></div><div class="prep-line"></div>
+            </div>
+          </div>
+
+          <p class="prep-foot" id="packet-disclaimer">Prepared with ClearChart for health literacy — not a medical document. Bring your original lab report as well.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- STATE 6: MEDICATION REVIEW ───────────────────────────── -->
     <section id="meds-view" class="view">
       <div class="results-container">
@@ -471,6 +636,21 @@
     </section>
 
   </main>
+
+  <!-- ── "EXPLAIN THIS VALUE" DRAWER ────────────────────────── -->
+  <div class="explain-overlay" id="explain-overlay" onclick="closeExplain()"></div>
+  <aside class="explain-drawer" id="explain-drawer" role="dialog" aria-modal="true" aria-label="Lab value explanation" tabindex="-1">
+    <div class="ex-head">
+      <div class="ex-head-info">
+        <p class="ex-tag" id="ex-tag"></p>
+        <h3 class="ex-title" id="ex-title"></h3>
+      </div>
+      <button class="ex-close" onclick="closeExplain()" aria-label="Close explanation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="ex-body" id="ex-body"></div>
+  </aside>
 
   <!-- ── CHAT WIDGET ────────────────────────────────────────── -->
   <div class="chat-panel" id="chat-panel" role="dialog" aria-label="ClearChart assistant">

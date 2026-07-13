@@ -9,6 +9,7 @@ pydantic-settings==2.3.4     # typed settings loaded from env / .env
 
 # ── AI / LLM (Groq) ───────────────────────────────────────
 groq>=0.11.0                 # OpenAI-compatible function calling for structured output
+openai>=1.60.0               # one OpenAI-compatible client for the multi-provider LLM fallback chain
 
 # ── EMBEDDINGS (local, keyless) ───────────────────────────
 # all-MiniLM-L6-v2 (384-dim) runs on CPU, no API key, no per-call cost.

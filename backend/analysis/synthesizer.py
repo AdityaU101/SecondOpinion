@@ -37,9 +37,8 @@ from __future__ import annotations
 import json
 import logging
 
-from groq import AsyncGroq
-
 from config import settings
+from llm import chat_completion, llm_available
 from api.schemas import (
     AnalysisReport, UrgencyLevel, Finding, FindingStatus, Severity,
     DoctorQuestion, Citation, HealthDomain,
@@ -146,47 +145,47 @@ async def synthesize_report(
     """RAG retrieval + Groq synthesis → AnalysisReport (rule-only fallback)."""
     guideline_passages = await _retrieve_guidelines(raw_text[:2000])
 
-    if not settings.groq_api_key:
-        log.warning("GROQ_API_KEY not set — returning rule-only report")
+    if not llm_available():
+        log.warning("No LLM provider configured — returning rule-only report")
         return _rule_only_report(rule_anomalies, guideline_passages)
 
-    client = AsyncGroq(api_key=settings.groq_api_key)
     system_prompt = _build_system_prompt()
     user_prompt = _build_user_prompt(raw_text, rule_anomalies, guideline_passages)
 
     try:
-        response = await client.chat.completions.create(
-            model=settings.llm_model,
-            max_tokens=settings.llm_max_tokens,
-            temperature=settings.llm_temperature,
+        # chat_completion walks the provider chain (Groq → OpenRouter → …),
+        # so a rate-limited primary falls back transparently.
+        response = await chat_completion(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            max_tokens=settings.llm_max_tokens,
+            temperature=settings.llm_temperature,
             tools=[REPORT_TOOL],
             tool_choice={"type": "function", "function": {"name": "emit_report"}},
         )
 
         data = _extract_tool_args(response)
         if data is None:
-            raise ValueError("Groq did not return the emit_report function call.")
+            raise ValueError("The model did not return the emit_report function call.")
 
         return _parse_llm_response(data, rule_anomalies, guideline_passages)
 
     except Exception as exc:  # noqa: BLE001
-        log.error("Groq synthesis failed (%s) — using rule-only report", exc)
+        log.error("LLM synthesis failed (%s) — using rule-only report", exc)
         return _rule_only_report(rule_anomalies, guideline_passages)
 
 
 def _extract_tool_args(response) -> dict | None:
-    """Pull the forced function call's JSON arguments out of the Groq response."""
+    """Pull the forced function call's JSON arguments out of the response."""
     try:
         tool_calls = response.choices[0].message.tool_calls or []
         for call in tool_calls:
             if call.function.name == "emit_report":
                 return json.loads(call.function.arguments)
     except (AttributeError, IndexError, json.JSONDecodeError) as exc:
-        log.warning("Could not parse Groq tool call: %s", exc)
+        log.warning("Could not parse the model's tool call: %s", exc)
     return None
 
 

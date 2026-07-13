@@ -26,7 +26,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
 from api.profiles import resolve_profile
-from config import settings
 from db.database import get_db
 from db.models import Medication, User
 
@@ -268,7 +267,8 @@ def _find_pairwise_interactions(meds: list[dict]) -> list[dict]:
 
 async def _plain_english_gloss(meds: list[dict], interactions: list[dict]) -> str | None:
     """One constrained LLM pass that may ONLY rephrase the retrieved excerpts."""
-    if not settings.groq_api_key:
+    from llm import chat_completion, llm_available
+    if not llm_available():
         return None
 
     lines = []
@@ -296,11 +296,7 @@ async def _plain_english_gloss(meds: list[dict], interactions: list[dict]) -> st
     )
 
     try:
-        from groq import AsyncGroq
-
-        client = AsyncGroq(api_key=settings.groq_api_key)
-        response = await client.chat.completions.create(
-            model=settings.llm_model,
+        response = await chat_completion(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
             temperature=0.2,

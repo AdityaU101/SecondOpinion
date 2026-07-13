@@ -14,6 +14,10 @@ from api.auth import router as auth_router
 from api.chat import router as chat_router
 from api.profiles import router as profiles_router
 from api.medications import router as medications_router
+from api.packets import router as packets_router
+from api.comparisons import router as comparisons_router
+from api.recommendations import router as recommendations_router
+from api.explain import router as explain_router
 from config import settings
 from db.database import create_tables
 from storage import ensure_upload_dir
@@ -75,6 +79,10 @@ app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(profiles_router)
 app.include_router(medications_router)
+app.include_router(packets_router)
+app.include_router(comparisons_router)
+app.include_router(recommendations_router)
+app.include_router(explain_router)
 
 # ── SERVE FRONTEND ────────────────────────────────────────
 # Open http://localhost:8000 → serves the UI directly.
