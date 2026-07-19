@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClearChart — Understand Your Medical Records</title>
+  <title>ClearChart - Understand Your Medical Records</title>
   <script>
     // Set theme before first paint to avoid a flash of the wrong mode.
     (function () {
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body>
 
@@ -46,7 +46,7 @@
           <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <a href="login.html" class="nav-cta" id="open-app-link">Get started</a>
+        <a href="login.html" class="nav-cta" id="open-app-link">Get started free</a>
       </nav>
     </div>
   </header>
@@ -57,9 +57,9 @@
 
       <!-- HERO -->
       <div class="hero">
-        <span class="badge">Free · Private · No medical jargon</span>
+        <span class="badge">Free, private, and jargon-free</span>
         <h1 class="hero-title">Understand your medical records in plain English</h1>
-        <p class="hero-sub">Upload a lab report, discharge note, or doctor's letter. ClearChart translates the medical language, flags anything unusual, suggests foods that help, and prepares the exact questions to bring to your next appointment.</p>
+        <p class="hero-sub">Upload a lab report or doctor's letter. ClearChart explains it in plain English and flags anything worth asking about.</p>
         <div class="hero-cta-row">
           <a href="login.html" class="btn-primary btn-hero" id="hero-cta">
             Get started free
@@ -76,68 +76,83 @@
       </div>
 
       <!-- FEATURES -->
-      <section id="features" class="features-section">
+      <section id="features" class="features-section" data-reveal>
         <span class="eyebrow">What you get</span>
-        <h2 class="section-title">Everything between "results are in" and "I understand them"</h2>
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <h2 class="section-title">Everything between &ldquo;results are in&rdquo; and &ldquo;I understand them&rdquo;</h2>
+        <div class="feature-bento">
+          <article class="bento-cell bento-featured">
+            <div class="bento-copy">
+              <h3 class="feature-title">Plain-language reports</h3>
+              <p class="feature-desc">Every value explained the way a good doctor would: what it is, why it matters, and whether yours needs attention.</p>
             </div>
-            <h3 class="feature-title">Plain-language reports</h3>
-            <p class="feature-desc">Every value explained the way a good doctor would over coffee — what it is, why it matters, and whether yours needs attention.</p>
-          </div>
-          <div class="feature-card">
+            <!-- Real component preview: the same finding card the app renders -->
+            <div class="bento-preview" aria-hidden="true">
+              <div class="finding-card moderate">
+                <div class="finding-header">
+                  <span class="finding-param">Vitamin D</span>
+                  <div class="finding-meta">
+                    <span class="finding-value">21 ng/mL</span>
+                    <span class="status-chip chip-low">Low</span>
+                  </div>
+                </div>
+                <p class="finding-explanation">Slightly below the healthy range. Common in winter, and usually easy to improve with diet and sunlight.</p>
+              </div>
+            </div>
+          </article>
+          <article class="bento-cell bento-tint">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
             <h3 class="feature-title">Grounded in real guidelines</h3>
-            <p class="feature-desc">Findings are cross-referenced against NIH, WHO, and USPSTF clinical guidelines — with the sources cited so you can verify.</p>
-          </div>
-          <div class="feature-card">
+            <p class="feature-desc">Findings are checked against NIH, WHO, and USPSTF clinical guidelines, with the sources cited so you can verify.</p>
+          </article>
+          <article class="bento-cell">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a9 9 0 0 0-9 9c0 4 2.5 7.5 6 8.7V22h6v-2.3c3.5-1.2 6-4.7 6-8.7a9 9 0 0 0-9-9z"/><path d="M9 11h6"/><path d="M12 8v6"/></svg>
             </div>
             <h3 class="feature-title">Nutrition that fills the gaps</h3>
-            <p class="feature-desc">Low on iron, vitamin D, or hemoglobin? ClearChart suggests everyday foods that naturally support the values your report flagged.</p>
-          </div>
-          <div class="feature-card">
+            <p class="feature-desc">Low on iron, vitamin D, or hemoglobin? ClearChart suggests everyday foods that support the values your report flagged.</p>
+          </article>
+          <article class="bento-cell">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
             <h3 class="feature-title">Ask anything, anytime</h3>
-            <p class="feature-desc">A built-in assistant answers your questions about the report in plain language — day or night, without an appointment.</p>
-          </div>
+            <p class="feature-desc">A built-in assistant answers questions about your report in plain language, day or night, no appointment needed.</p>
+          </article>
         </div>
       </section>
 
       <!-- HOW IT WORKS -->
-      <section id="how-it-works" class="how-section">
-        <span class="eyebrow">Three steps</span>
+      <section id="how-it-works" class="how-section" data-reveal>
         <h2 class="section-title">How it works</h2>
-        <div class="steps">
-          <div class="step">
-            <div class="step-num">1</div>
-            <h3 class="step-title">Upload your document</h3>
-            <p class="step-desc">PDF, image scan, or pasted text. ClearChart reads everything — typed notes, printed lab sheets, even handwritten OCR.</p>
-          </div>
-          <div class="step-arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-num">2</div>
-            <h3 class="step-title">AI cross-references guidelines</h3>
-            <p class="step-desc">Your document is matched against NIH, WHO, and USPSTF clinical guidelines to surface anomalies and deviations from standard care.</p>
-          </div>
-          <div class="step-arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-num">3</div>
-            <h3 class="step-title">Get your plain-language report</h3>
-            <p class="step-desc">A clear summary, flagged items explained simply, nutrition tips, and questions ready for your next appointment.</p>
-          </div>
-        </div>
+        <ol class="timeline">
+          <li class="tl-item">
+            <div class="tl-rail"><span class="tl-num">1</span></div>
+            <div class="tl-body">
+              <h3 class="step-title">Upload your document</h3>
+              <p class="step-desc">PDF, image scan, or pasted text. ClearChart reads typed notes, printed lab sheets, even handwritten scans.</p>
+            </div>
+          </li>
+          <li class="tl-item">
+            <div class="tl-rail"><span class="tl-num">2</span></div>
+            <div class="tl-body">
+              <h3 class="step-title">AI cross-references guidelines</h3>
+              <p class="step-desc">Your document is matched against NIH, WHO, and USPSTF clinical guidelines to surface anything unusual.</p>
+            </div>
+          </li>
+          <li class="tl-item">
+            <div class="tl-rail"><span class="tl-num">3</span></div>
+            <div class="tl-body">
+              <h3 class="step-title">Get your plain-language report</h3>
+              <p class="step-desc">A clear summary, flagged items explained simply, nutrition tips, and questions ready for your next appointment.</p>
+            </div>
+          </li>
+        </ol>
       </section>
 
       <!-- PRIVACY -->
-      <section id="privacy" class="privacy-section">
+      <section id="privacy" class="privacy-section" data-reveal>
         <div class="privacy-card">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <div>
@@ -148,12 +163,12 @@
       </section>
 
       <!-- CTA BAND -->
-      <section class="cta-band">
+      <section class="cta-band" data-reveal>
         <div class="cta-band-inner">
           <h2 class="cta-title">Your next lab report doesn't have to be a mystery</h2>
           <p class="cta-sub">Create a free account and get your first plain-language report in under a minute.</p>
           <a href="login.html" class="btn-primary btn-hero">
-            Analyze my records
+            Get started free
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
         </div>
@@ -164,7 +179,7 @@
 
   <!-- ── FOOTER ─────────────────────────────────────────────── -->
   <footer class="footer">
-    <p>ClearChart · Built with Python, FastAPI, Groq &amp; Neon · Not a medical device</p>
+    <p>ClearChart is not a medical device. Always review your results with your doctor.</p>
   </footer>
 
   <script src="site.js"></script>

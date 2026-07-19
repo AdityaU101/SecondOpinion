@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────
-   ClearChart — frontend application logic
+   ClearChart, frontend application logic
    Connects to FastAPI backend at /api/v1
    ───────────────────────────────────────────────────────── */
 
@@ -23,7 +23,7 @@ let state = {
   textContent: '',
   currentJobId: null,
   pollInterval: null,
-  lastReport: null,        // completed report — powers chat context + nutrition
+  lastReport: null,        // completed report, powers chat context + nutrition
 };
 
 // ── TAB SWITCHING (upload tabs) ───────────────────────────
@@ -207,7 +207,7 @@ function pollJobStatus(jobId) {
       if (!res.ok) throw new Error('Status check failed');
 
       const job = await res.json();
-      if (finished) return;           // completed while THIS tick was awaiting — bail out
+      if (finished) return;           // completed while THIS tick was awaiting, bail out
 
       syncProcessingUI(job);
 
@@ -347,7 +347,7 @@ function showResults(report) {
     document.getElementById('disclaimer-text').textContent = report.disclaimer;
   }
 
-  // "What changed since the last report" — deterministic, server-computed
+  // "What changed since the last report", deterministic, server-computed
   loadChanges(state.currentJobId);
 
   // Follow-up recommendations for this report (deterministic tracker)
@@ -399,7 +399,7 @@ async function loadChanges(jobId) {
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(guestPriorSupplement(jobId)),
     });
-    if (!res.ok) return;                 // strip is optional — fail silently
+    if (!res.ok) return;                 // strip is optional, fail silently
     data = await res.json();
   } catch { return; }
 
@@ -487,7 +487,7 @@ function renderComparisonBar(f) {
   const unit = f.unit ? ' ' + escapeHtml(f.unit) : '';
   const healthyText = openUpper
     ? `≥ ${fmt(lowRef)}${unit}`
-    : (lowRef <= 0 ? `≤ ${fmt(highRef)}${unit}` : `${fmt(lowRef)}–${fmt(highRef)}${unit}`);
+    : (lowRef <= 0 ? `≤ ${fmt(highRef)}${unit}` : `${fmt(lowRef)}-${fmt(highRef)}${unit}`);
 
   return `
     <div class="cmp">
@@ -658,7 +658,7 @@ function addBmiToReport() {
   if (!_lastBmi) { showToast('Enter your height and weight first', 'error'); return; }
   switchTab('text');
   const ta = document.getElementById('text-input');
-  const line = `BMI: ${_lastBmi} kg/m2 — Body Mass Index calculated from height and weight.`;
+  const line = `BMI: ${_lastBmi} kg/m2, Body Mass Index calculated from height and weight.`;
   ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + line + '\n';
   onTextInput();
   showToast('BMI added to the text box. Add your other lab values, then Analyze.', 'info');
@@ -756,7 +756,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 const MOCK_REPORT = {
   urgency: 'watch',
   summary: 'Your blood panel from June 2026 shows a few values outside the normal range. Your LDL cholesterol is elevated at 145 mg/dL (normal is under 100 mg/dL for adults), and your fasting glucose of 108 mg/dL is in the pre-diabetic range. Your kidney function markers (creatinine and eGFR) are within normal limits, and your complete blood count looks healthy overall. These are findings worth discussing with your doctor at your next scheduled appointment.',
-  patient_context: 'Comprehensive metabolic panel and lipid panel results detected. Two values — LDL cholesterol and fasting glucose — were identified as outside reference ranges and cross-referenced against USPSTF and NIH clinical guidelines.',
+  patient_context: 'Comprehensive metabolic panel and lipid panel results detected. Two values, LDL cholesterol and fasting glucose, were identified as outside reference ranges and cross-referenced against USPSTF and NIH clinical guidelines.',
   findings: [
     {
       parameter: 'LDL Cholesterol',
@@ -769,10 +769,10 @@ const MOCK_REPORT = {
     {
       parameter: 'Fasting Glucose',
       value: '108 mg/dL',
-      reference_range: '70–99 mg/dL',
+      reference_range: '70-99 mg/dL',
       status: 'high',
       severity: 'mild',
-      explanation: 'A fasting glucose of 100–125 mg/dL is classified as "pre-diabetes" by the ADA. This doesn\'t mean you have diabetes, but it indicates your body is having some difficulty regulating blood sugar. Diet adjustments and exercise can often reverse this stage.',
+      explanation: 'A fasting glucose of 100-125 mg/dL is classified as "pre-diabetes" by the ADA. This doesn\'t mean you have diabetes, but it indicates your body is having some difficulty regulating blood sugar. Diet adjustments and exercise can often reverse this stage.',
     },
     {
       parameter: 'Hemoglobin A1c',
@@ -793,7 +793,7 @@ const MOCK_REPORT = {
   ],
   questions_for_doctor: [
     {
-      question: 'My LDL is 145 mg/dL — should I consider a statin medication, or can lifestyle changes alone bring it down?',
+      question: 'My LDL is 145 mg/dL. Should I consider a statin medication, or can lifestyle changes alone bring it down?',
       context: 'Based on your elevated LDL finding and USPSTF statin guidelines for preventive cardiovascular care.',
     },
     {
@@ -811,18 +811,18 @@ const MOCK_REPORT = {
   ],
   citations: [
     {
-      source: 'USPSTF — Statin Use for the Primary Prevention of CVD',
-      passage: 'The USPSTF recommends prescribing a statin for adults aged 40–75 who have one or more CVD risk factors and an estimated 10-year CVD event risk of 10% or greater.',
+      source: 'USPSTF - Statin Use for the Primary Prevention of CVD',
+      passage: 'The USPSTF recommends prescribing a statin for adults aged 40-75 who have one or more CVD risk factors and an estimated 10-year CVD event risk of 10% or greater.',
       url: 'https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/statin-use-in-adults-preventive-medication',
     },
     {
-      source: 'ADA Standards of Medical Care — Pre-Diabetes',
-      passage: 'Fasting plasma glucose 100–125 mg/dL is classified as impaired fasting glucose (pre-diabetes). Referral to an intensive behavioral lifestyle intervention program is recommended.',
+      source: 'ADA Standards of Medical Care - Pre-Diabetes',
+      passage: 'Fasting plasma glucose 100-125 mg/dL is classified as impaired fasting glucose (pre-diabetes). Referral to an intensive behavioral lifestyle intervention program is recommended.',
       url: 'https://diabetesjournals.org/care/issue/47/Supplement_1',
     },
     {
-      source: 'NIH MedlinePlus — LDL Reference Ranges',
-      passage: 'An LDL level of less than 100 mg/dL is considered optimal. 130–159 mg/dL is borderline high. Dietary modification is the first-line recommendation.',
+      source: 'NIH MedlinePlus - LDL Reference Ranges',
+      passage: 'An LDL level of less than 100 mg/dL is considered optimal. 130-159 mg/dL is borderline high. Dietary modification is the first-line recommendation.',
       url: 'https://medlineplus.gov/cholesterollevelswhatyouneedtoknow.html',
     },
   ],
@@ -920,7 +920,7 @@ function renderProfileMenu() {
   });
 
   document.getElementById('pm-account').textContent = session.guest
-    ? 'Guest session — profiles stay on this device'
+    ? 'Guest session, profiles stay on this device'
     : (session.email ? `${session.name} · ${session.email}` : session.name);
 }
 
@@ -1194,7 +1194,7 @@ function renderTrends(entries) {
   grid.innerHTML = '';
   series.forEach((s, i) => grid.appendChild(buildTrendCard(s, i)));
 
-  // Longitudinal summary — generated ONLY from the values above, never invented.
+  // Longitudinal summary, generated ONLY from the values above, never invented.
   const summaryEl = document.getElementById('trends-summary');
   const sentences = series.slice(0, 4).map(computeTrendSentence).filter(Boolean);
   if (sentences.length) {
@@ -1237,12 +1237,12 @@ function computeTrendSentence(series) {
   if (hasHigh && latest > ref.ref_high) {
     const prevOut = first > ref.ref_high;
     position = prevOut && latest < first
-      ? ' — moving toward the healthy range, but still above it'
+      ? ', moving toward the healthy range, but still above it'
       : ' and remains above the healthy range';
   } else if (hasLow && latest < ref.ref_low) {
     const prevOut = first < ref.ref_low;
     position = prevOut && latest > first
-      ? ' — moving toward the healthy range, but still below it'
+      ? ', moving toward the healthy range, but still below it'
       : ' and remains below the healthy range';
   } else if (hasHigh || hasLow) {
     const wasOut = (hasHigh && first > ref.ref_high) || (hasLow && first < ref.ref_low);
@@ -1277,7 +1277,7 @@ function buildTrendCard(series, index) {
   const hasLow = latest.ref_low !== null && latest.ref_low !== undefined && latest.ref_low > 0;
   const unit = series.unit ? ` ${series.unit}` : '';
   let rangeText = '';
-  if (hasLow && hasHigh) rangeText = `Healthy: ${fmt(latest.ref_low)}–${fmt(latest.ref_high)}${unit}`;
+  if (hasLow && hasHigh) rangeText = `Healthy: ${fmt(latest.ref_low)}-${fmt(latest.ref_high)}${unit}`;
   else if (hasHigh) rangeText = `Healthy: ≤ ${fmt(latest.ref_high)}${unit}`;
   else if (hasLow) rangeText = `Healthy: ≥ ${fmt(latest.ref_low)}${unit}`;
 
@@ -1352,7 +1352,7 @@ function buildSparklineSVG(pts) {
 
 // ── FOLLOW-UP RECOMMENDATION TRACKER ──────────────────────
 // Recommendations are generated ONCE per report by a deterministic rule
-// table on the backend, then persisted — ticking a checkbox or saving a
+// table on the backend, then persisted, ticking a checkbox or saving a
 // note is a tiny PATCH; generation and the LLM never re-run on state
 // changes. Works identically for guests (their jobs live server-side).
 
@@ -1500,13 +1500,13 @@ async function loadPendingRecs(entries) {
     items.forEach(r => { recTracker.byId[r.id] = r; });
     items.slice(0, 8).forEach(r => list.appendChild(buildRecRow(r, true)));
     card.style.display = '';
-  } catch { /* the card is optional enrichment — stay hidden */ }
+  } catch { /* the card is optional enrichment, stay hidden */ }
 }
 
 // ── REPORT COMPARISON MODE ────────────────────────────────
 // The user picks two saved reports; the BACKEND computes a deterministic
 // diff (new / resolved / improved / worsened / unchanged / not re-measured)
-// from the stored findings. The LLM only rephrases that computed result —
+// from the stored findings. The LLM only rephrases that computed result -
 // the frontend just renders what the server decided.
 
 const compare = { selecting: false, selected: [], busy: false, current: null };
@@ -1545,7 +1545,7 @@ function toggleCompareSelect(jobId, card) {
     card.classList.remove('selected');
   } else {
     if (compare.selected.length >= 2) {
-      showToast('Two reports at a time — unselect one first.', 'info');
+      showToast('Two reports at a time, unselect one first.', 'info');
       return;
     }
     compare.selected.push(jobId);
@@ -1558,8 +1558,8 @@ function updateCompareBar() {
   const n = compare.selected.length;
   document.getElementById('compare-bar-text').textContent =
     n === 0 ? 'Select two reports to compare.'
-    : n === 1 ? '1 of 2 selected — pick one more.'
-    : 'Two reports selected — ready to compare.';
+    : n === 1 ? '1 of 2 selected, pick one more.'
+    : 'Two reports selected, ready to compare.';
   document.getElementById('compare-run-btn').disabled = n !== 2;
 }
 
@@ -1604,7 +1604,7 @@ const COMPARE_BUCKETS = [
   ['newly_measured', 'Measured for the first time', 'cvb-gray',
    'Present only in the latest report, and within the healthy range.'],
   ['not_remeasured', 'Not re-measured this time', 'cvb-amber',
-   'Present only in the earlier report — no new value exists, so nothing is assumed.'],
+   'Present only in the earlier report, no new value exists, so nothing is assumed.'],
 ];
 
 function cvHead(meta, label) {
@@ -1669,7 +1669,7 @@ function renderCompare(c) {
 
   document.getElementById('cv-summary').innerHTML = linkifyTerms(escapeHtml(c.summary || ''));
   document.getElementById('cv-summary-src').textContent = c.summary_source === 'llm'
-    ? 'Reworded from the computed comparison below — nothing added.'
+    ? 'Reworded from the computed comparison below, nothing added.'
     : 'Generated directly from the computed comparison below.';
 
   const wrap = document.getElementById('cv-buckets');
@@ -1714,7 +1714,7 @@ const SEVERITY_ORDER = { critical: 0, moderate: 1, mild: 2, normal: 3 };
 
 function openPrep() {
   const r = state.lastReport;
-  if (!r) { showToast('Run an analysis first — the prep sheet is built from your report.', 'error'); return; }
+  if (!r) { showToast('Run an analysis first, the prep sheet is built from your report.', 'error'); return; }
 
   const prepProfile = activeProfile();
   document.getElementById('prep-name').textContent = prepProfile.is_default && session.guest
@@ -1757,7 +1757,7 @@ const packet = { current: null, busy: false, from: 'history-view' };
 
 function openPacket(fromView) {
   if (!state.currentJobId) {
-    showToast('Run an analysis first — the packet is built from your report.', 'error');
+    showToast('Run an analysis first, the packet is built from your report.', 'error');
     return;
   }
   loadPacket(state.currentJobId, fromView || 'results-view');
@@ -1772,7 +1772,7 @@ function downloadPacketPDF() {
   window.open(`${API_BASE}/jobs/${packet.current.job_id}/packet/export`, '_blank');
 }
 
-/* Guests keep profiles, meds, and history in localStorage — send that context
+/* Guests keep profiles, meds, and history in localStorage, send that context
    so the server can build the same packet it builds for accounts. */
 function guestPacketSupplements() {
   if (session.token) return {};
@@ -1807,7 +1807,7 @@ async function loadPacket(jobId, fromView) {
   packet.from = fromView || 'history-view';
 
   try {
-    // Reuse the saved packet when there is one — no duplicate generation.
+    // Reuse the saved packet when there is one, no duplicate generation.
     let res = await fetch(`${API_BASE}/jobs/${jobId}/packet`, { headers: authHeaders() });
     if (!res.ok) {
       showToast('Preparing your visit packet…', 'info');
@@ -1839,7 +1839,7 @@ function renderPacket(p) {
 
   document.getElementById('packet-note').textContent = p.visit_note || '';
   document.getElementById('packet-note-src').textContent = p.visit_note_source === 'llm'
-    ? 'Reworded from the verified report values — nothing added.'
+    ? 'Reworded from the verified report values, nothing added.'
     : 'Generated directly from the verified report values.';
 
   const fl = document.getElementById('packet-findings');
@@ -1908,7 +1908,7 @@ function renderPacket(p) {
   (p.citations || []).forEach(c => {
     const div = document.createElement('div');
     div.className = 'pk-citation';
-    div.innerHTML = `<strong>${escapeHtml(c.source)}</strong>${c.url ? ` — <span class="prep-ref">${escapeHtml(c.url)}</span>` : ''}`;
+    div.innerHTML = `<strong>${escapeHtml(c.source)}</strong>${c.url ? ` <span class="prep-ref">${escapeHtml(c.url)}</span>` : ''}`;
     cits.appendChild(div);
   });
 
@@ -1934,8 +1934,8 @@ const NUTRITION_RULES = [
   {
     match: /vitamin\s*d|25-?oh|calcidiol/i, when: 'low',
     label: 'Vitamin D support',
-    why: 'Vitamin D comes from sunlight and a short list of foods — worth combining both.',
-    foods: [['🐟','Salmon & sardines'],['🥚','Egg yolks'],['🍄','Mushrooms (sun-exposed)'],['🥛','Fortified milk'],['🌾','Fortified cereals'],['☀️','15–20 min morning sun']],
+    why: 'Vitamin D comes from sunlight and a short list of foods, worth combining both.',
+    foods: [['🐟','Salmon & sardines'],['🥚','Egg yolks'],['🍄','Mushrooms (sun-exposed)'],['🥛','Fortified milk'],['🌾','Fortified cereals'],['☀️','15-20 min morning sun']],
   },
   {
     match: /vitamin\s*b\s*12|cobalamin/i, when: 'low',
@@ -1946,7 +1946,7 @@ const NUTRITION_RULES = [
   {
     match: /calcium/i, when: 'low',
     label: 'Calcium support',
-    why: 'Calcium works alongside vitamin D — dairy is the classic source, but greens and seeds count too.',
+    why: 'Calcium works alongside vitamin D, dairy is the classic source, but greens and seeds count too.',
     foods: [['🥛','Milk & yogurt'],['🧀','Cheese'],['🥬','Kale & bok choy'],['🌱','Sesame seeds / tahini'],['🐟','Sardines with bones'],['🫘','White beans']],
   },
   {
@@ -1958,7 +1958,7 @@ const NUTRITION_RULES = [
   {
     match: /magnesium/i, when: 'low',
     label: 'Magnesium support',
-    why: 'Magnesium supports muscles, nerves, and sleep — nuts and whole grains carry the most.',
+    why: 'Magnesium supports muscles, nerves, and sleep, nuts and whole grains carry the most.',
     foods: [['🌰','Almonds & cashews'],['🎃','Pumpkin seeds'],['🍫','Dark chocolate'],['🥬','Spinach'],['🌾','Whole grains'],['🫘','Black beans']],
   },
   {
@@ -1970,7 +1970,7 @@ const NUTRITION_RULES = [
   {
     match: /folate|folic/i, when: 'low',
     label: 'Folate support',
-    why: 'Folate is abundant in greens and legumes — light cooking preserves more of it.',
+    why: 'Folate is abundant in greens and legumes, light cooking preserves more of it.',
     foods: [['🥬','Spinach & greens'],['🫘','Lentils'],['🥦','Broccoli'],['🥑','Avocado'],['🍊','Oranges'],['🌾','Fortified grains']],
   },
   {
@@ -2018,13 +2018,13 @@ const NUTRITION_RULES = [
   {
     match: /creatinine|\begfr\b|urea|\bbun\b/i, when: 'high',
     label: 'Kidney-friendly eating',
-    why: 'When kidney markers drift, moderating salt and very high protein loads eases the workload — but changes here should be doctor-guided.',
+    why: 'When kidney markers drift, moderating salt and very high protein loads eases the workload, but changes here should be doctor-guided.',
     foods: [['💧','Steady hydration'],['🥗','More plants, less processed'],['🧂','Lower salt'],['🍎','Apples & berries'],['⚕️','Ask about protein targets']],
   },
   {
     match: /blood pressure|systolic|diastolic|hypertension/i, when: 'high',
     label: 'DASH-style eating for blood pressure',
-    why: 'The DASH pattern — produce, whole grains, low-fat dairy, less salt — reliably lowers blood pressure.',
+    why: 'The DASH pattern, produce, whole grains, low-fat dairy, less salt, reliably lowers blood pressure.',
     foods: [['🥬','Leafy greens'],['🍌','Bananas'],['🫐','Berries'],['🥛','Low-fat dairy'],['🌾','Whole grains'],['🧂','Less salt'],['🌰','Unsalted nuts']],
   },
   {
@@ -2057,7 +2057,7 @@ function renderNutrition(findings) {
   });
 
   if (cards.length === 0) {
-    list.innerHTML = `<div class="nutri-empty">No targeted nutrition suggestions this time — your flagged values don't map to a food-first fix, or everything is in range. A balanced plate (half vegetables and fruit, a quarter whole grains, a quarter protein) is still the best daily default.</div>`;
+    list.innerHTML = `<div class="nutri-empty">No targeted nutrition suggestions this time, your flagged values don't map to a food-first fix, or everything is in range. A balanced plate (half vegetables and fruit, a quarter whole grains, a quarter protein) is still the best daily default.</div>`;
     return;
   }
 
@@ -2387,7 +2387,7 @@ function renderMedAnalysis(data) {
       <div class="summary-card med-block">
         <h3 class="panel-section-title">Plain-English overview</h3>
         <p class="summary-text">${linkifyTerms(escapeHtml(data.overview))}</p>
-        <p class="med-gloss-note">Simplified only from the label excerpts cited below — nothing added.</p>
+        <p class="med-gloss-note">Simplified only from the label excerpts cited below, nothing added.</p>
       </div>`;
   }
 
@@ -2405,7 +2405,7 @@ function renderMedAnalysis(data) {
   } else {
     html += `<div class="summary-card med-block">
       <h3 class="panel-section-title">Interactions between your medications</h3>
-      <p class="summary-text">No interaction between these medications is documented in their FDA labels. That is not a guarantee none exists — your pharmacist can run a complete check.</p>
+      <p class="summary-text">No interaction between these medications is documented in their FDA labels. That is not a guarantee none exists, your pharmacist can run a complete check.</p>
     </div>`;
   }
 
@@ -2414,7 +2414,7 @@ function renderMedAnalysis(data) {
     if (!m.found) {
       html += `<div class="summary-card med-block">
         <h3 class="panel-section-title">${escapeHtml(m.name)}</h3>
-        <p class="summary-text">No authoritative FDA label was found for “${escapeHtml(m.name)}”. Check the spelling, try the generic name, or ask your pharmacist — we only show information we can source.</p>
+        <p class="summary-text">No authoritative FDA label was found for “${escapeHtml(m.name)}”. Check the spelling, try the generic name, or ask your pharmacist, we only show information we can source.</p>
       </div>`;
       return;
     }
@@ -2444,7 +2444,7 @@ function renderMedAnalysis(data) {
 // ── MEDICAL TERM POPOVERS ─────────────────────────────────
 // A curated plain-English glossary; report text is linkified so terms open
 // a popover on hover (desktop) or tap (mobile). Content is deliberately
-// educational and generic — the report's own explanation stays primary.
+// educational and generic, the report's own explanation stays primary.
 
 const GLOSSARY = {
   hemoglobin: { name: 'Hemoglobin', tag: 'Blood', terms: ['hemoglobin', 'haemoglobin', 'hgb'],
@@ -2454,25 +2454,25 @@ const GLOSSARY = {
     causes: 'Low: iron/B12/folate deficiency, blood loss, chronic disease. High: dehydration, lung conditions.',
     next: 'Doctors often check iron studies (ferritin), B12, and folate to find the cause.' },
   ferritin: { name: 'Ferritin', tag: 'Iron stores', terms: ['ferritin'],
-    what: "A protein that stores iron — it's the best everyday measure of your iron reserves.",
+    what: "A protein that stores iron, it's the best everyday measure of your iron reserves.",
     why: 'Iron reserves determine whether your body can make enough healthy red blood cells.',
     hilo: 'Low suggests iron deficiency even before anemia appears. High can reflect inflammation or iron overload.',
     causes: 'Low: diet, blood loss, absorption problems. High: inflammation, liver conditions, hereditary iron overload.',
     next: 'Often rechecked together with a full iron panel and CRP to rule out inflammation.' },
   anemia: { name: 'Anemia', tag: 'Condition', terms: ['anemia', 'anaemia', 'anemic'],
     what: 'Having fewer healthy red blood cells (or less hemoglobin) than your body needs.',
-    why: 'It reduces oxygen delivery — fatigue, pale skin, and breathlessness are typical signs.',
+    why: 'It reduces oxygen delivery, fatigue, pale skin, and breathlessness are typical signs.',
     hilo: 'Anemia itself means values are low; the key question is why.',
     causes: 'Iron, B12, or folate deficiency; blood loss; chronic kidney disease; inherited conditions.',
     next: 'Doctors usually look for the cause with iron studies, B12/folate, and sometimes a stool test.' },
   ldl: { name: 'LDL cholesterol', tag: 'Lipids', terms: ['ldl'],
-    what: 'The "bad" cholesterol — particles that can deposit cholesterol in artery walls.',
+    what: 'The "bad" cholesterol, particles that can deposit cholesterol in artery walls.',
     why: 'Long-term high LDL is a major, treatable driver of heart attack and stroke risk.',
     hilo: 'High is the concern. Lower is generally better; there is no "too low" symptom for most people.',
     causes: 'Diet high in saturated fat, genetics, low thyroid, some medications.',
     next: 'Discussed alongside overall heart risk; options range from diet and exercise to statins.' },
   hdl: { name: 'HDL cholesterol', tag: 'Lipids', terms: ['hdl'],
-    what: 'The "good" cholesterol — it carries cholesterol away from arteries back to the liver.',
+    what: 'The "good" cholesterol, it carries cholesterol away from arteries back to the liver.',
     why: 'Higher HDL generally tracks with lower cardiovascular risk.',
     hilo: 'Low is the concern; high HDL is usually welcome.',
     causes: 'Low: inactivity, smoking, metabolic syndrome, genetics.',
@@ -2486,13 +2486,13 @@ const GLOSSARY = {
   a1c: { name: 'Hemoglobin A1c', tag: 'Blood sugar', terms: ['hba1c', 'a1c'],
     what: 'Your average blood sugar over roughly the past three months.',
     why: "It shows the bigger picture that a single glucose reading can't.",
-    hilo: '5.7–6.4% suggests pre-diabetes; 6.5%+ suggests diabetes. Low A1c is rarely a concern.',
+    hilo: '5.7-6.4% suggests pre-diabetes; 6.5%+ suggests diabetes. Low A1c is rarely a concern.',
     causes: 'High: insulin resistance, diabetes. Slightly off readings can also follow anemia.',
-    next: 'Doctors discuss lifestyle changes and how often to re-test (typically every 3–6 months).' },
+    next: 'Doctors discuss lifestyle changes and how often to re-test (typically every 3-6 months).' },
   glucose: { name: 'Glucose', tag: 'Blood sugar', terms: ['glucose'],
     what: 'The sugar your cells burn for energy, measured in your blood.',
     why: 'Persistently high fasting glucose is how pre-diabetes and diabetes are spotted early.',
-    hilo: 'High (fasting 100–125 = pre-diabetic range) is the usual flag; low causes shakiness and sweating.',
+    hilo: 'High (fasting 100-125 = pre-diabetic range) is the usual flag; low causes shakiness and sweating.',
     causes: 'High: insulin resistance, stress, some medications. Low: skipped meals, diabetes medication.',
     next: 'A repeat fasting test or an A1c usually confirms whether it is a pattern.' },
   creatinine: { name: 'Creatinine', tag: 'Kidney', terms: ['creatinine'],
@@ -2502,43 +2502,43 @@ const GLOSSARY = {
     causes: 'High: kidney strain, dehydration, some medications, very high muscle mass.',
     next: 'Interpreted together with eGFR; doctors may repeat it hydrated or add a urine test.' },
   egfr: { name: 'eGFR', tag: 'Kidney', terms: ['egfr', 'glomerular filtration'],
-    what: 'Estimated filtration rate — how many millilitres of blood your kidneys clean per minute.',
+    what: 'Estimated filtration rate, how many millilitres of blood your kidneys clean per minute.',
     why: 'It stages kidney function; above 60 is generally considered adequate.',
     hilo: 'Low is the concern. There is no "too high".',
     causes: 'Low: chronic kidney disease, diabetes, high blood pressure, dehydration on test day.',
     next: 'If low, doctors usually recheck in weeks and look at urine protein.' },
   ast: { name: 'AST', tag: 'Liver', terms: ['ast', 'aspartate aminotransferase'],
     what: 'An enzyme found in the liver (and muscles) that leaks into blood when cells are stressed.',
-    why: 'Raised levels can signal liver irritation — from fat, alcohol, viruses, or medications.',
+    why: 'Raised levels can signal liver irritation, from fat, alcohol, viruses, or medications.',
     hilo: 'High is the concern; low is not meaningful.',
     causes: 'Fatty liver, alcohol, viral hepatitis, some medicines, intense exercise.',
     next: 'Usually interpreted with ALT; doctors may order an ultrasound or repeat after lifestyle changes.' },
   alt: { name: 'ALT', tag: 'Liver', terms: ['alt', 'alanine aminotransferase'],
-    what: 'A liver enzyme — the most liver-specific of the standard panel.',
+    what: 'A liver enzyme, the most liver-specific of the standard panel.',
     why: 'Persistent elevation is an early flag for fatty liver and other liver conditions.',
     hilo: 'High is the concern; low is not meaningful.',
     causes: 'Fatty liver, alcohol, viral hepatitis, some medications and supplements.',
-    next: 'Often rechecked after 4–8 weeks of reduced alcohol/sugar; imaging if it stays high.' },
+    next: 'Often rechecked after 4-8 weeks of reduced alcohol/sugar; imaging if it stays high.' },
   neutrophils: { name: 'Neutrophils', tag: 'Immune', terms: ['neutrophil', 'neutrophils', 'neutropenia'],
-    what: 'The most numerous white blood cells — first responders against bacterial infection.',
+    what: 'The most numerous white blood cells, first responders against bacterial infection.',
     why: 'They show whether your immune system is fighting something or running low.',
     hilo: 'High often means infection or inflammation; low (neutropenia) weakens infection defence.',
     causes: 'High: infection, stress, steroids. Low: viral illness, some medications, chemotherapy.',
     next: 'Doctors look at the trend and the rest of the white-cell differential.' },
   wbc: { name: 'White blood cells', tag: 'Immune', terms: ['wbc', 'white blood cell', 'leukocyte', 'leukocytes'],
-    what: 'Your immune cells as a group — the body\'s defence force.',
+    what: 'Your immune cells as a group, the body\'s defence force.',
     why: 'The total count rises with infection and inflammation, and falls with some illnesses and drugs.',
     hilo: 'Both directions matter: high suggests the body is fighting; low weakens defences.',
     causes: 'High: infection, inflammation, stress. Low: viral infections, some medications.',
     next: 'The differential (which types are up or down) usually tells the real story.' },
   platelets: { name: 'Platelets', tag: 'Blood', terms: ['platelet', 'platelets', 'thrombocyte'],
-    what: 'Tiny cell fragments that plug leaks — the first step of clotting.',
+    what: 'Tiny cell fragments that plug leaks, the first step of clotting.',
     why: 'Too few means easy bruising and bleeding; far too many can promote clots.',
     hilo: 'Both extremes matter, though mild deviations are common and often transient.',
     causes: 'Low: viral illness, some medicines, liver/spleen conditions. High: inflammation, iron deficiency.',
     next: 'Mild changes are usually just rechecked; the trend matters more than one value.' },
   tsh: { name: 'TSH', tag: 'Thyroid', terms: ['tsh', 'thyroid stimulating hormone'],
-    what: "The pituitary's control signal to the thyroid — the best single thyroid screen.",
+    what: "The pituitary's control signal to the thyroid, the best single thyroid screen.",
     why: 'It moves opposite to thyroid activity: high TSH usually means an underactive thyroid.',
     hilo: 'High TSH → underactive thyroid (fatigue, weight gain). Low TSH → overactive (palpitations, weight loss).',
     causes: 'Autoimmune thyroid disease is the most common cause in both directions.',
@@ -2551,7 +2551,7 @@ const GLOSSARY = {
     next: 'Doctors discuss dosing and when to re-test (often ~3 months).' },
   b12: { name: 'Vitamin B12', tag: 'Vitamin', terms: ['b12', 'cobalamin'],
     what: 'A vitamin needed for red blood cells and healthy nerves, found mostly in animal foods.',
-    why: 'Deficiency causes anemia and — if prolonged — nerve symptoms like tingling.',
+    why: 'Deficiency causes anemia and, if prolonged, nerve symptoms like tingling.',
     hilo: 'Low is the concern; high usually just reflects supplements.',
     causes: 'Low: vegetarian/vegan diet, absorption problems, long-term antacid or metformin use.',
     next: 'Doctors ask about diet and medications, and may test absorption-related markers.' },
@@ -2563,7 +2563,7 @@ const GLOSSARY = {
     next: 'Interpreted with the other liver tests; direct vs indirect fractions narrow the cause.' },
   potassium: { name: 'Potassium', tag: 'Electrolyte', terms: ['potassium'],
     what: 'An electrolyte critical for heart rhythm and muscle function.',
-    why: 'Both high and low levels can disturb heart rhythm — this one has a narrow safe band.',
+    why: 'Both high and low levels can disturb heart rhythm, this one has a narrow safe band.',
     hilo: 'Both directions matter and deserve a prompt conversation if flagged.',
     causes: 'Low: diuretics, vomiting/diarrhea. High: kidney issues, some blood-pressure medications.',
     next: 'Often rechecked promptly to rule out a sample artifact before acting.' },
@@ -2574,14 +2574,14 @@ const GLOSSARY = {
     causes: 'Low: diuretics, hormonal issues, excess water. High: dehydration.',
     next: 'Doctors review medications and fluid intake first.' },
   calcium: { name: 'Calcium', tag: 'Electrolyte', terms: ['calcium', 'calcemia'],
-    what: 'A mineral for bones, nerves, and muscle — tightly regulated in blood.',
+    what: 'A mineral for bones, nerves, and muscle, tightly regulated in blood.',
     why: 'Persistent abnormalities often trace to parathyroid or vitamin D issues.',
     hilo: 'High: often parathyroid-related. Low: vitamin D deficiency is a common cause.',
     causes: 'High: hyperparathyroidism, some cancers. Low: vitamin D deficiency, kidney disease.',
     next: 'Usually rechecked with albumin, vitamin D, and PTH.' },
   uricacid: { name: 'Uric acid', tag: 'Metabolic', terms: ['uric acid', 'urate'],
     what: 'A waste product from purines (in meat, seafood, beer) cleared by the kidneys.',
-    why: 'High levels can crystallise in joints — that is gout.',
+    why: 'High levels can crystallise in joints, that is gout.',
     hilo: 'High is the concern; low is rarely meaningful.',
     causes: 'Diet, alcohol, kidney clearance, diuretics, genetics.',
     next: 'Hydration and diet first; medication if gout attacks occur.' },
@@ -2599,13 +2599,13 @@ const GLOSSARY = {
     next: 'Doctors weigh overall cardiovascular risk to choose between lifestyle change and medication.' },
   hypertension: { name: 'Hypertension', tag: 'Condition', terms: ['hypertension', 'high blood pressure'],
     what: 'Blood pressure that stays above the healthy range (roughly 130/80 and up).',
-    why: 'Over years it quietly damages heart, brain, kidneys, and eyes — and it is very treatable.',
+    why: 'Over years it quietly damages heart, brain, kidneys, and eyes, and it is very treatable.',
     hilo: 'High is the definition; the number pair (systolic/diastolic) both matter.',
     causes: 'Genetics, salt, weight, alcohol, sleep apnea, kidney or hormonal conditions.',
     next: 'Home readings over a week or two usually guide the treatment conversation.' },
   crp: { name: 'CRP', tag: 'Inflammation', terms: ['crp', 'c-reactive protein'],
     what: 'A protein the liver releases when there is inflammation anywhere in the body.',
-    why: 'It is a sensitive but non-specific smoke detector — it says "something", not "what".',
+    why: 'It is a sensitive but non-specific smoke detector: it says "something", not "what".',
     hilo: 'High is the flag; the higher it is, the more active the inflammation.',
     causes: 'Infections, autoimmune flares, injury; mildly high with obesity and smoking.',
     next: 'Doctors pair it with symptoms and other tests to locate the source.' },
@@ -2666,7 +2666,7 @@ function showTermPopover(target) {
     <div class="tp-row"><span class="tp-label">High vs low</span><p>${escapeHtml(entry.hilo)}</p></div>
     <div class="tp-row"><span class="tp-label">Common causes</span><p>${escapeHtml(entry.causes)}</p></div>
     <div class="tp-row"><span class="tp-label">Often discussed next</span><p>${escapeHtml(entry.next)}</p></div>
-    <p class="tp-foot">Educational only — your report and your doctor come first.</p>`;
+    <p class="tp-foot">Educational only. Your report and your doctor come first.</p>`;
 
   pop.classList.add('open');
   const rect = target.getBoundingClientRect();
@@ -2716,7 +2716,7 @@ window.addEventListener('scroll', () => { if (_termPop) _termPop.classList.remov
 // guideline citations retrieved by the backend's existing RAG index.
 // Nothing is generated: missing pieces say so instead of guessing.
 
-/* Structural metadata only (which biomarkers relate to which) — the medical
+/* Structural metadata only (which biomarkers relate to which), the medical
    content itself stays in GLOSSARY. Keys are GLOSSARY keys. */
 const RELATED_BIOMARKERS = {
   ldl: ['hdl', 'triglycerides', 'a1c'], hdl: ['ldl', 'triglycerides'],
@@ -2734,7 +2734,7 @@ const RELATED_BIOMARKERS = {
 };
 
 /* Which listed medications are worth mentioning for a value. Name patterns
-   only — the "why" is deliberately generic and non-prescriptive. */
+   only, the "why" is deliberately generic and non-prescriptive. */
 const MED_RELEVANCE = [
   { params: /ldl|hdl|triglycerid|cholesterol/i, meds: /statin$|atorva|rosuva|simva|prava|lova|ezetimibe|fenofibrate|niacin/i, why: 'commonly used in cholesterol management' },
   { params: /glucose|a1c|sugar/i, meds: /metformin|insulin|glipizide|glimepiride|gliclazide|sitagliptin|empagliflozin|dapagliflozin|semaglutide|liraglutide/i, why: 'affects blood-sugar values' },
@@ -2783,11 +2783,11 @@ function openExplain(f) {
 
   const statusClass = { high: 'chip-high', low: 'chip-low', abnormal: 'chip-abnormal', normal: 'chip-normal' }[(f.status || '').toLowerCase()] || '';
   const rangeText = f.reference_range
-    || (f.ref_low !== undefined && f.ref_high !== undefined && f.ref_high < 9000 ? `${fmt(f.ref_low)}–${fmt(f.ref_high)}${f.unit ? ' ' + f.unit : ''}` : '');
+    || (f.ref_low !== undefined && f.ref_high !== undefined && f.ref_high < 9000 ? `${fmt(f.ref_low)}-${fmt(f.ref_high)}${f.unit ? ' ' + f.unit : ''}` : '');
 
   let html = '';
 
-  // Your value — reuses the report's own comparison chart
+  // Your value, reuses the report's own comparison chart
   if (f.value || f.numeric_value !== undefined) {
     html += `<div class="ex-section">
       <h4 class="ex-section-title">Your value</h4>
@@ -2807,7 +2807,7 @@ function openExplain(f) {
     html += exSection('Common causes', exText(g.causes));
     html += exSection('Often discussed next', exText(g.next));
   } else {
-    html += exSection('Plain-language entry', '<p class="ex-text ex-muted">No curated plain-language entry exists for this biomarker yet — the sections below show what your report and the guideline index say.</p>');
+    html += exSection('Plain-language entry', '<p class="ex-text ex-muted">No curated plain-language entry exists for this biomarker yet, the sections below show what your report and the guideline index say.</p>');
   }
 
   if (f.explanation) {
@@ -2825,7 +2825,7 @@ function openExplain(f) {
 
   html += exSection('Your medications', '<p class="ex-text ex-muted" id="ex-meds">Checking your medication list…</p>');
   html += exSection('Clinical guidelines', '<p class="ex-text ex-muted" id="ex-citations">Looking up guideline passages…</p>');
-  html += '<p class="ex-foot">Educational only — your report and your doctor come first.</p>';
+  html += '<p class="ex-foot">Educational only. Your report and your doctor come first.</p>';
 
   const body = document.getElementById('ex-body');
   body.innerHTML = html;
@@ -2861,7 +2861,7 @@ async function fillExplainMeds(f) {
   if (relevant.length) {
     el.classList.remove('ex-muted');
     el.innerHTML = relevant.map(m => `<span class="pk-med">${escapeHtml(m.name)}</span>`).join(' ')
-      + `<span class="ex-med-why"> — ${escapeHtml(rule.why)}. Mention it when discussing this value.</span>`;
+      + `<span class="ex-med-why">, ${escapeHtml(rule.why)}. Mention it when discussing this value.</span>`;
   } else {
     el.textContent = 'None of your listed medications are commonly linked to this value.';
   }
@@ -2887,7 +2887,7 @@ async function fillExplainCitations(parameter) {
         ${c.url ? `<a class="citation-url" href="${escapeHtml(c.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.url)}</a>` : ''}
       </div>`).join('');
   } catch {
-    el.textContent = 'Guideline lookup is unavailable right now — the rest of this explanation still applies.';
+    el.textContent = 'Guideline lookup is unavailable right now, the rest of this explanation still applies.';
   }
 }
 

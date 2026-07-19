@@ -38,6 +38,28 @@ if (window.matchMedia) {
   });
 }
 
+/* ── SCROLL REVEAL ────────────────────────────────────────
+   Sections marked [data-reveal] fade in as they enter the
+   viewport. Without IO support or with reduced motion on,
+   .reveal-ready is never added and everything renders visible. */
+
+(function () {
+  const els = document.querySelectorAll('[data-reveal]');
+  if (!els.length || !('IntersectionObserver' in window)) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  document.documentElement.classList.add('reveal-ready');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px' });
+  els.forEach((el) => io.observe(el));
+})();
+
 /* ── AUTH SESSION ─────────────────────────────────────────── */
 
 function ccGetSession() {

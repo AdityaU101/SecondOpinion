@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClearChart — Analyze Your Records</title>
+  <title>ClearChart - Analyze Your Records</title>
   <script>
     (function () {
       var t = localStorage.getItem('clearchart-theme');
@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body>
 
@@ -86,7 +86,7 @@
     <!-- STATE 1: UPLOAD ──────────────────────────────────────── -->
     <section id="upload-view" class="view active">
       <div class="hero">
-        <span class="badge">Free · Documents never stored</span>
+        <span class="badge">Free, and your documents are never stored</span>
         <h1 class="hero-title" id="app-greeting">Let's read your records together</h1>
         <p class="hero-sub">Upload a lab report, discharge note, or doctor's letter. You'll get a plain-language report, nutrition tips, and questions for your next appointment.</p>
         <div class="ekg" aria-hidden="true">
@@ -139,13 +139,13 @@
         </div>
 
         <div id="panel-text" class="tab-panel">
-          <textarea id="text-input" class="text-area" placeholder="Paste your medical text here — lab results, doctor notes, discharge summaries..." rows="10" oninput="onTextInput()"></textarea>
+          <textarea id="text-input" class="text-area" placeholder="Paste your medical text here: lab results, doctor notes, discharge summaries..." rows="10" oninput="onTextInput()"></textarea>
           <p class="char-count"><span id="char-count">0</span> characters</p>
         </div>
 
         <div class="disclaimer">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>ClearChart provides health literacy support only — not medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional.</span>
+          <span>ClearChart provides health literacy support only, not medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional.</span>
         </div>
 
         <button class="btn-primary" id="analyze-btn" disabled onclick="startAnalysis()">
@@ -163,7 +163,7 @@
             <button class="bmi-unit-btn" data-units="imperial" onclick="toggleBmiUnits('imperial')">Imperial</button>
           </div>
         </div>
-        <p class="bmi-sub">See how your body mass index compares to the healthy range — then add it to your analysis as a health parameter.</p>
+        <p class="bmi-sub">See how your body mass index compares to the healthy range, then add it to your analysis as a health parameter.</p>
         <div class="bmi-inputs">
           <label class="bmi-field">
             <span>Height</span>
@@ -182,7 +182,7 @@
         </div>
         <div class="bmi-result hidden" id="bmi-result">
           <div class="bmi-readout">
-            <span class="bmi-number" id="bmi-value">—</span>
+            <span class="bmi-number" id="bmi-value">-</span>
             <span class="bmi-cat" id="bmi-category"></span>
           </div>
           <div id="bmi-bar"></div>
@@ -338,11 +338,11 @@
 
         <!-- Follow-ups panel -->
         <div id="rtab-followups" class="result-panel">
-          <p class="questions-intro">Guideline-backed follow-up steps generated from this report's flagged values. Tick items off as you handle them — your progress is saved.</p>
+          <p class="questions-intro">Guideline-backed follow-up steps generated from this report's flagged values. Tick items off as you handle them. Your progress is saved.</p>
           <div id="followups-list" class="followups-list"></div>
           <div class="nutri-note">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>These are conversation starters for your doctor, generated from standard guidelines — not medical orders. Timing and testing decisions belong to your clinician.</span>
+            <span>These are conversation starters for your doctor, generated from standard guidelines, not medical orders. Timing and testing decisions belong to your clinician.</span>
           </div>
         </div>
 
@@ -406,8 +406,8 @@
         <!-- Report list -->
         <div id="history-list" class="history-list"></div>
         <div id="history-empty" class="nutri-empty" style="display:none">
-          No reports yet. Run your first analysis and it will appear here —
-          once you have two or more, ClearChart starts charting your trends over time.
+          No reports yet. Run your first analysis and it will appear here.
+          Once you have two or more, ClearChart starts charting your trends over time.
         </div>
       </div>
     </section>
@@ -461,7 +461,7 @@
             </div>
           </div>
 
-          <p class="prep-foot">Prepared with ClearChart for health literacy — not a medical document. Bring your original lab report as well.</p>
+          <p class="prep-foot">Prepared with ClearChart for health literacy, not a medical document. Bring your original lab report as well.</p>
         </div>
       </div>
     </section>
@@ -496,7 +496,7 @@
 
         <div class="results-disclaimer">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span id="cv-disclaimer">Comparisons are computed from your stored report values for health literacy only — not medical advice. Discuss changes with your doctor.</span>
+          <span id="cv-disclaimer">Comparisons are computed from your stored report values for health literacy only, not medical advice. Discuss changes with your doctor.</span>
         </div>
       </div>
     </section>
@@ -585,7 +585,7 @@
             </div>
           </div>
 
-          <p class="prep-foot" id="packet-disclaimer">Prepared with ClearChart for health literacy — not a medical document. Bring your original lab report as well.</p>
+          <p class="prep-foot" id="packet-disclaimer">Prepared with ClearChart for health literacy, not a medical document. Bring your original lab report as well.</p>
         </div>
       </div>
     </section>
@@ -607,7 +607,7 @@
 
         <div class="summary-card">
           <h3 class="panel-section-title">Medications for <span id="meds-profile-name"></span></h3>
-          <p class="meds-sub">Add the medicines this profile takes. ClearChart checks the official FDA labels (via openFDA and DailyMed) for documented interactions, food and alcohol warnings, side effects, and timing notes — with every statement cited to its label.</p>
+          <p class="meds-sub">Add the medicines this profile takes. ClearChart checks the official FDA labels (via openFDA and DailyMed) for documented interactions, food and alcohol warnings, side effects, and timing notes, with every statement cited to its label.</p>
 
           <div class="med-input-row">
             <div class="med-input-wrap">
@@ -630,7 +630,7 @@
 
         <div class="nutri-note">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>This review shows label-documented information for health literacy only. It is not a complete interaction check and never a reason to start, stop, or change a medication — always talk to your doctor or pharmacist first.</span>
+          <span>This review shows label-documented information for health literacy only. It is not a complete interaction check and never a reason to start, stop, or change a medication. Always talk to your doctor or pharmacist first.</span>
         </div>
       </div>
     </section>
@@ -660,7 +660,7 @@
       </div>
       <div class="chat-head-info">
         <div class="chat-head-title">ClearChart Assistant</div>
-        <div class="chat-head-status">Online · answers in plain language</div>
+        <div class="chat-head-status">Answers in plain language</div>
       </div>
     </div>
     <div class="chat-msgs" id="chat-msgs"></div>
@@ -672,18 +672,17 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <p class="chat-note">Educational support only — for medical decisions, talk to your doctor.</p>
+    <p class="chat-note">Educational support only. For medical decisions, talk to your doctor.</p>
   </div>
 
   <button class="chat-fab" id="chat-fab" onclick="toggleChat()" aria-label="Open the ClearChart assistant">
-    <span class="chat-fab-dot" aria-hidden="true"></span>
     <svg class="icon-chat" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <svg class="icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
 
   <!-- ── FOOTER ─────────────────────────────────────────────── -->
   <footer class="footer">
-    <p>ClearChart · Built with Python, FastAPI, Groq &amp; Neon · Not a medical device</p>
+    <p>ClearChart is not a medical device. Always review your results with your doctor.</p>
   </footer>
 
   <script src="site.js"></script>
